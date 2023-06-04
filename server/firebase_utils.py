@@ -1,13 +1,18 @@
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+SERVICE_ACCOUNT_PATH = os.getenv("SERVICE_ACCOUNT_PATH")
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("path/to/serviceAccountKey.json")  # Replace with the path to your service account key JSON file
-firebase_admin.initialize_app(cred)
+cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+app = firebase_admin.initialize_app(cred)
 
 # Function to fetch addresses for a user
-def fetch_user_addresses(user_id):
+def get_user_address(user_id):
     # Access the Firestore database
     db = firestore.client()
 
@@ -15,7 +20,7 @@ def fetch_user_addresses(user_id):
     collection_name = "addresses"
 
     # Get the document for the specified chat_id
-    doc_ref = db.collection(collection_name).document(str(chat_id))
+    doc_ref = db.collection(collection_name).document(str(user_id))
     doc_snapshot = doc_ref.get()
 
     # Check if the document exists
@@ -24,7 +29,7 @@ def fetch_user_addresses(user_id):
         data = doc_snapshot.to_dict()
 
         # Get the addresses associated with the user
-        addresses = data.get("addresses", [])
+        addresses = data.get("publicKey", [])
 
         # Return the addresses
         return addresses
@@ -33,7 +38,18 @@ def fetch_user_addresses(user_id):
         # Document not found
         return []
 
-# Example usage
-chat_id = 123456789  # Replace with the chat ID of the user
-user_addresses = fetch_user_addresses(chat_id)
-print(user_addresses)
+def insert_user_address(user_id, public_key, private_key):
+    # Initialize Firestore database
+    db = firestore.client()
+
+    # Define the document reference using the user ID
+    doc_ref = db.collection('addresses').document(str(user_id))
+
+    # Create the data to be inserted
+    data = {
+        'publicKey': public_key,
+        'privateKey': private_key
+    }
+
+    # Insert the data into the document
+    doc_ref.set(data)

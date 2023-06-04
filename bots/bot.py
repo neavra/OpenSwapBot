@@ -22,11 +22,16 @@ ROUTE = range(1)
 async def start(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     gas_fee, block_number = blockchain.web3_utils.get_ethereum_data()
-    address = "0xCB182D3bec556974692bcF8504b433C30943AD93"
-    # address = server.firebase_utils.get_user_address(user_id)
+    address = server.firebase_utils.get_user_address(user_id)
 
-    balance = "0.0"
-    transaction = "0"
+    if not address:
+        # Onboard new user
+        new_public_key, new_private_key = blockchain.web3_utils.create_wallet()
+        server.firebase_utils.insert_user_address(user_id, new_public_key, new_private_key)
+        address = server.firebase_utils.get_user_address(user_id)
+
+    balance = blockchain.web3_utils.get_balance(address)
+    transaction = blockchain.web3_utils.get_nonce(address)
 
     keyboard = [
         [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens")]
