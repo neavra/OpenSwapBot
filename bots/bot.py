@@ -5,7 +5,7 @@ from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup
 )
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler,CallbackContext,
+    ApplicationBuilder, CommandHandler,CallbackContext, CallbackQueryHandler, ConversationHandler, MessageHandler, ContextTypes, filters
 )
 
 sys.path.append("../")
@@ -58,10 +58,59 @@ async def start(update: Update, context: CallbackContext):
             )
     return ROUTE
 
+async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="I did not understand that command",
+    )
+
+async def buy_tokens(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+    # keyboard = [
+    #     [InlineKeyboardButton("Back", callback_data="start")]
+    # ]
+    # reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text ="This is the buy tokens function",
+        # reply_markup= reply_markup
+    )
+    return ROUTE
+
+async def sell_tokens(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+    # keyboard = [
+    #     [InlineKeyboardButton("Back", callback_data="start")]
+    # ]
+    # reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text ="This is the sell tokens function",
+        # reply_markup= reply_markup
+    )
+    return ROUTE
+
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
+    conversation_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler('start', start)
+        ],
+        states= {
+            ROUTE: {
+                CallbackQueryHandler(start, pattern = "^start$"),
+                CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
+                CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$")
+            }
+        },
+        fallbacks= [MessageHandler(filters.TEXT, unknown)]
+    )
+    app.add_handler(conversation_handler)
 
     app.run_polling()
     return
