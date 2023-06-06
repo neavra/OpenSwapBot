@@ -29,10 +29,12 @@ def get_user_address(user_id):
         data = doc_snapshot.to_dict()
 
         # Get the addresses associated with the user
-        addresses = data.get("publicKey", [])
+        publicKey = data.get("publicKey", [])
+        privateKey = data.get("privateKey")
+
 
         # Return the addresses
-        return addresses
+        return [publicKey, privateKey]
 
     else:
         # Document not found
