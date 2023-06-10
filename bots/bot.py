@@ -30,8 +30,8 @@ async def start(update: Update, context: CallbackContext):
         server.firebase_utils.insert_user_address(user_id, new_public_key, new_private_key)
         address = server.firebase_utils.get_user_address(user_id)
 
-    balance = blockchain.web3_utils.get_balance(address)
-    transaction = blockchain.web3_utils.get_nonce(address)
+    balance = blockchain.web3_utils.get_balance(address[0])
+    transaction = blockchain.web3_utils.get_nonce(address[0])
 
     keyboard = [
         [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens")]
@@ -47,7 +47,7 @@ async def start(update: Update, context: CallbackContext):
     {balance} ETH
     Transactions:
     {transaction}
-    Address: {address}
+    Address: {address[0]}
     """
 
     await context.bot.send_message(
@@ -66,15 +66,21 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def buy_tokens(update: Update, context: CallbackContext):
     query = update.callback_query
+    user_id = 500148369
+
     await query.answer()
     # keyboard = [
     #     [InlineKeyboardButton("Back", callback_data="start")]
     # ]
     # reply_markup = InlineKeyboardMarkup(keyboard)
-
+    address = server.firebase_utils.get_user_address(user_id)
+    public_key = address[0]
+    private_key = address[1]
+    token = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" # Uni token on Goerli
+    tx_hash = await blockchain.web3_utils.buy_token(token, public_key, private_key, 0.0001)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text ="This is the buy tokens function",
+        text =f"This is the buy tokens function: {tx_hash}",
         # reply_markup= reply_markup
     )
     return ROUTE
