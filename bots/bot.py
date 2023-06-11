@@ -91,12 +91,16 @@ async def buy_tokens(update: Update, context: CallbackContext):
     public_key = address[0]
     private_key = address[1]
     token = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" # Uni token on Goerli
-    amount = 0.0001
-    tx_hash = await blockchain.web3_utils.buy_token(token, public_key, private_key, amount)
-
+    token_symbol = blockchain.web3_utils.get_symbol(token)
+    amount_in = 0.0001
+    receipt = await blockchain.web3_utils.buy_token(token, public_key, private_key, amount_in)
+    tx_hash = receipt['transactionHash'].hex()
+   
+    amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token, public_key)
+    
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text =f"Swapped {amount} of ETH for {token}. tx hash: {tx_hash}",
+        text =f"Swapped {amount_in} of ETH for {amount_out} of {token_symbol}!\n Tx hash: {tx_hash}",
         reply_markup= reply_markup
     )
     return ROUTE
