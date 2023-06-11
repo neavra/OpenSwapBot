@@ -90,17 +90,20 @@ async def buy_tokens(update: Update, context: CallbackContext):
     address = server.firebase_utils.get_user_address(user_id)
     public_key = address[0]
     private_key = address[1]
-    token = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" # Uni token on Goerli
-    token_symbol = blockchain.web3_utils.get_symbol(token)
+    token_out = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH token on Goerli
+    token_in = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" # Uni token on Goerli
+
+    token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
+    token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
     amount_in = 0.0001
-    receipt = await blockchain.web3_utils.buy_token(token, public_key, private_key, amount_in)
+    receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
     tx_hash = receipt['transactionHash'].hex()
    
-    amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token, public_key)
-    
+    amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text =f"Swapped {amount_in} of ETH for {amount_out} of {token_symbol}!\n Tx hash: {tx_hash}",
+        text =f"Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!\n Tx hash: {tx_hash}",
         reply_markup= reply_markup
     )
     return ROUTE
