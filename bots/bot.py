@@ -92,10 +92,22 @@ async def buy_tokens(update: Update, context: CallbackContext):
     private_key = address[1]
     token_out = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH token on Goerli
     token_in = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" # Uni token on Goerli
+    amount_in = 0.0001
 
+
+    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
+
+    if validation_result:
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"{str(validation_result)}",
+        reply_markup= reply_markup
+        )
+        return
+    
     token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
     token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
-    amount_in = 0.0001
+
     receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
     tx_hash = receipt['transactionHash'].hex()
    

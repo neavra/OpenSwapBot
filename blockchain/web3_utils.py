@@ -150,11 +150,24 @@ def approve_contract(public_key, private_key, token_in, amount_in):
     else:
         print('Approval failed.')
 
-# def validate_params():
-#     return True
+def validate_params(token_in, token_out, public_key, amount_in):
+    # Should validate contract address, and validate token balances
+    contract_in = web3.eth.contract(address=token_in, abi=ERC20_ABI)
+    contract_out = web3.eth.contract(address=token_out, abi=ERC20_ABI)
+    amount = web3.to_wei(amount_in, 'ether')
+    try:        
+        balance_in = contract_in.functions.balanceOf(public_key).call()
+        balance_out = contract_out.functions.balanceOf(public_key).call()
+        
+        if balance_in < amount:
+            raise ValueError("Insufficient balance in your wallet")
+        
+    except Exception as e:
+        # Handle the exception here
+        print("Validation error:", str(e))
+        return e
 
 async def swap_token(token_in, token_out, public_key, private_key, amount_in):
-    # validate_params()
 
     if token_in == WETH_ADDRESS:
         wrap_eth(amount_in, public_key, private_key)
