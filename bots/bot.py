@@ -173,7 +173,8 @@ def main():
             ROUTE: {
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
-                CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$")
+                CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
+                CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
             }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
