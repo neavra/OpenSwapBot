@@ -47,7 +47,7 @@ async def start(update: Update, context: CallbackContext):
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
-        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens")]
+        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -76,6 +76,33 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="I did not understand that command",
     )
+
+async def buy_tokens_options(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("Buy Amount", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("Option 3", callback_data="3"),
+
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = "Please choose:", 
+        reply_markup=reply_markup)
+    
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Please enter a contract address"
+    )
+    return ROUTE
 
 async def buy_tokens(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -145,7 +172,7 @@ def main():
         states= {
             ROUTE: {
                 CallbackQueryHandler(start, pattern = "^start$"),
-                CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
+                CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$")
             }
         },
