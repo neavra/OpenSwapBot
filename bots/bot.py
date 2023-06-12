@@ -35,7 +35,7 @@ async def start(update: Update, context: CallbackContext):
 
     gas_fee, block_number = blockchain.web3_utils.get_ethereum_data()
     address = server.firebase_utils.get_user_address(user_id)
-    public_key = address[0]
+    
 
     if not address:
         # Onboard new user
@@ -43,6 +43,7 @@ async def start(update: Update, context: CallbackContext):
         server.firebase_utils.insert_user_address(user_id, new_public_key, new_private_key)
         address = server.firebase_utils.get_user_address(user_id)
 
+    public_key = address[0]
     balance = blockchain.web3_utils.get_balance(public_key)
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
@@ -80,6 +81,33 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def buy_tokens_options(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("Buy Amount", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("Option 3", callback_data="3"),
+
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = "Please choose:", 
+        reply_markup=reply_markup)
+    
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Please enter a contract address"
+    )
+    return ROUTE
+
+async def sell_tokens_options(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
             InlineKeyboardButton("Option 1", callback_data="1"),
             InlineKeyboardButton("Option 2", callback_data="2"),
