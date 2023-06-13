@@ -48,7 +48,7 @@ async def start(update: Update, context: CallbackContext):
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
-        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
+        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_confirmation"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -105,31 +105,40 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     )
     return ROUTE
 
-async def sell_tokens_options(update: Update, context: CallbackContext):
-    keyboard = [
-        [InlineKeyboardButton("sell Amount", callback_data="start")],
-        [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="start")],
-        [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
+async def buy_tokens_confirmation(update: Update, context: CallbackContext):
+    context.user_data['amount_in'] = 0.0001
+    context.user_data['token_in'] = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+    context.user_data['token_out'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
 
-        ],
+    amount_in = context.user_data['amount_in']
+    token_in = context.user_data['token_in']
+    token_out = context.user_data['token_out']
+    path = [token_in, token_out]
+    fees = [3000]
+    path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
+
+    amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
+
+    token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
+    token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
+
+    keyboard = [
+        [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text = "Please choose:", 
-        reply_markup=reply_markup)
+
     
+    message = f"""
+    Please confirm your order:
+    Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+    """
+
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Please enter a contract address"
-    )
+                chat_id=update.effective_chat.id, 
+                text=message, 
+                parse_mode="markdown", 
+                reply_markup=reply_markup
+            )
     return ROUTE
 
 async def buy_tokens(update: Update, context: CallbackContext):
@@ -148,9 +157,9 @@ async def buy_tokens(update: Update, context: CallbackContext):
     address = server.firebase_utils.get_user_address(user_id)
     public_key = address[0]
     private_key = address[1]
-    token_out = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH token on Goerli
-    token_in = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" # Uni token on Goerli
-    amount_in = 0.0001
+    amount_in = context.user_data['amount_in']
+    token_in = context.user_data['token_in']
+    token_out = context.user_data['token_out']
 
 
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
@@ -177,6 +186,33 @@ async def buy_tokens(update: Update, context: CallbackContext):
         chat_id=update.effective_chat.id,
         text =f"Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!\n Tx hash: {tx_hash}",
         reply_markup= reply_markup
+    )
+    return ROUTE
+
+async def sell_tokens_options(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("sell Amount", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("Option 3", callback_data="3"),
+
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = "Please choose:", 
+        reply_markup=reply_markup)
+    
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Please enter a contract address"
     )
     return ROUTE
 
@@ -207,6 +243,7 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
+                CallbackQueryHandler(buy_tokens_confirmation, pattern="^buy_tokens_confirmation$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
             }
