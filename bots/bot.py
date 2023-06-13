@@ -48,7 +48,7 @@ async def start(update: Update, context: CallbackContext):
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
-        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
+        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -136,6 +136,9 @@ async def buy_tokens(update: Update, context: CallbackContext):
     query = update.callback_query
     await query.answer()
     user_id = context.user_data.get('user_id')
+    # Send loading message to user
+    loading_message = "Executing Swap, this might take a while..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
 
     keyboard = [
         [InlineKeyboardButton("Back", callback_data="start")]
@@ -153,6 +156,7 @@ async def buy_tokens(update: Update, context: CallbackContext):
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
     if validation_result:
+        await message.delete()
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text =f"{str(validation_result)}",
@@ -167,6 +171,7 @@ async def buy_tokens(update: Update, context: CallbackContext):
     tx_hash = receipt['transactionHash'].hex()
    
     amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
+    await message.delete()
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
