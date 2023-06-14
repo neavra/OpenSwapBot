@@ -106,21 +106,54 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     return ROUTE
 
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
+    # To be refactored into options menu
+    ##########################################################################################################################################################
+    user_id = context.user_data.get('user_id')
+
+    address = server.firebase_utils.get_user_address(user_id)
+    public_key = address[0]
+    private_key = address[1]
+
     context.user_data['amount_in'] = 0.0001
     context.user_data['token_in'] = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
     context.user_data['token_out'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
+    context.user_data['public_key'] = public_key
+    context.user_data['private_key'] = private_key
 
     amount_in = context.user_data['amount_in']
+    amount_in = 0.0001
     token_in = context.user_data['token_in']
     token_out = context.user_data['token_out']
-    path = [token_in, token_out]
-    fees = [3000]
-    path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
-
-    amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
     token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
     token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
+    fees = [3000]
+
+    context.user_data['token_in_symbol'] = token_in_symbol
+    context.user_data['token_out_symbol'] = token_out_symbol
+    context.user_data['fees'] = fees
+
+    
+
+    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
+
+    if validation_result:
+        await message.delete()
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"{str(validation_result)}",
+        reply_markup= reply_markup
+        )
+        return
+    
+    path = [token_in, token_out]
+    path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
+
+    context.user_data['path_bytes'] = path_bytes
+    ##########################################################################################################################################################
+
+    amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
+
 
     keyboard = [
         [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
@@ -155,26 +188,14 @@ async def buy_tokens(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     address = server.firebase_utils.get_user_address(user_id)
-    public_key = address[0]
-    private_key = address[1]
+    public_key = context.user_data['public_key']
+    private_key = context.user_data['private_key']
     amount_in = context.user_data['amount_in']
     token_in = context.user_data['token_in']
     token_out = context.user_data['token_out']
-
-
-    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
-
-    if validation_result:
-        await message.delete()
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"{str(validation_result)}",
-        reply_markup= reply_markup
-        )
-        return
     
-    token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
-    token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
+    token_in_symbol = context.user_data['token_in_symbol']
+    token_out_symbol = context.user_data['token_out_symbol']
 
     receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
     tx_hash = receipt['transactionHash'].hex()
