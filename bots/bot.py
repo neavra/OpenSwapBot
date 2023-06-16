@@ -318,6 +318,12 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
+            InlineKeyboardButton(f'Option 1', callback_data='tick1'),
+    
+            InlineKeyboardButton(f'Option 2 {emoji2}', callback_data="tick2"), 
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [
             InlineKeyboardButton(f'Option 1', callback_data="amount_option_1"),
     
             InlineKeyboardButton("Option 2", callback_data="amount_option_2"), 
