@@ -210,12 +210,27 @@ async def buy_tokens(update: Update, context: CallbackContext):
     )
     return ROUTE
 
-async def sell_tokens_options(update: Update, context: CallbackContext):
-    keyboard = [
+async def tick1(update: Update, context: CallbackContext):
+    query= update.callback_query 
+    await query.answer()
+    global toggle1
+    toggle1 = not toggle1
+    global toggle2
+    toggle2 = False
+
+    if toggle1 == True:
+        emoji1 = '\u2714'
+
+    else:
+        emoji1 = ''
+    
+    
+    keyboard = keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton(f'Option 1 {emoji1}', callback_data='tick1'),
+    
+            InlineKeyboardButton(f'Option 2', callback_data="tick2"), 
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
@@ -223,6 +238,80 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
             InlineKeyboardButton("Option 2", callback_data="2"),
             InlineKeyboardButton("Option 3", callback_data="3"),
 
+        ],
+        [
+            InlineKeyboardButton("Back", callback_data="start"),
+        ],
+    ]
+    reply_markup= InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        text = "Please choose:", 
+        reply_markup=reply_markup
+
+    )
+
+async def tick2(update: Update, context: CallbackContext):
+    query= update.callback_query 
+    await query.answer()
+    global toggle2
+    toggle2 = not toggle2
+    global toggle1
+    toggle1 = False
+    if toggle2 == True:
+        emoji2 = '\u2714'
+
+    else:
+        emoji2 = ''
+    
+    
+    keyboard = keyboard = [
+        [InlineKeyboardButton("sell Amount", callback_data="start")],
+        [
+            InlineKeyboardButton(f'Option 1', callback_data='tick1'),
+    
+            InlineKeyboardButton(f'Option 2 {emoji2}', callback_data="tick2"), 
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("Option 3", callback_data="3"),
+
+        ],
+        [
+            InlineKeyboardButton("Back", callback_data="start"),
+        ],
+    ]
+    reply_markup= InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        text = "Please choose:", 
+        reply_markup=reply_markup
+
+    )
+    
+async def sell_tokens_options(update: Update, context: CallbackContext):
+    global toggle1
+    toggle1 = False
+
+    global toggle2
+    toggle2 = False
+
+    keyboard = [
+        [InlineKeyboardButton("sell Amount", callback_data="start")],
+        [
+            InlineKeyboardButton(f'Option 1', callback_data="tick1"),
+    
+            InlineKeyboardButton("Option 2", callback_data="tick2"), 
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [
+            InlineKeyboardButton("Option 1", callback_data="1"),
+            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("Option 3", callback_data="3"),
+
+        ],
+        [
+            InlineKeyboardButton("Back", callback_data="start"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -253,8 +342,9 @@ async def sell_tokens(update: Update, context: CallbackContext):
     return ROUTE
 
 def main():
-    app = ApplicationBuilder().token(TELE_TOKEN).build()
+    
 
+    app = ApplicationBuilder().token(TELE_TOKEN).build()
     conversation_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start)
@@ -264,6 +354,8 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
+                CallbackQueryHandler(tick1, pattern="^tick1$"),
+                CallbackQueryHandler(tick2, pattern="^tick2$"),
                 CallbackQueryHandler(buy_tokens_confirmation, pattern="^buy_tokens_confirmation$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
