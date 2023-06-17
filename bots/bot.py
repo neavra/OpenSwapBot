@@ -85,11 +85,17 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def buy_tokens_options(update: Update, context: CallbackContext):
+    # Initialise toggle state dictionary
+    toggle_states = {}
+    toggle_states["toggle_10"] = False
+    toggle_states["toggle_20"] = False
+    context.user_data["toggle_states"] = toggle_states # Save the toggle states in the context object
+
     keyboard = [
         [InlineKeyboardButton("Buy Amount", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("10", callback_data="toggle_10"),
+            InlineKeyboardButton("20", callback_data="toggle_20"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
@@ -270,9 +276,12 @@ async def toggle_switch(update: Update, context: CallbackContext):
     else:
         emoji[callback_data] = ''
     
-    
-    keyboard = keyboard = [
-        [InlineKeyboardButton("sell Amount", callback_data="start")],
+
+    toggle_10_emoji = '\u2714' if toggle_states["toggle_10"] else ''
+    toggle_20_emoji = '\u2714' if toggle_states["toggle_20"] else ''
+
+    keyboard = [
+        [InlineKeyboardButton("Buy Amount", callback_data="start")],
         [
             InlineKeyboardButton(f"Option 1 {emoji['amount_option_1']}", callback_data='amount_option_1'),
     
@@ -284,9 +293,6 @@ async def toggle_switch(update: Update, context: CallbackContext):
             InlineKeyboardButton(f"Option 2 {emoji['slippage_option_2']}", callback_data="slippage_option_2"),
             InlineKeyboardButton(f"Option 3 {emoji['slippage_option_3']}", callback_data="slippage_option_3"),
 
-        ],
-        [
-            InlineKeyboardButton("Back", callback_data="start"),
         ],
     ]
     reply_markup= InlineKeyboardMarkup(keyboard)
