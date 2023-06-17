@@ -128,7 +128,7 @@ def check_approval(token_in, public_key):
     allowance = contract.functions.allowance(public_key, UNISWAP_ROUTER_ADDRESS).call()
     return allowance
 
-def approve_contract(public_key, private_key, token_in, amount_in):
+def approve_contract(public_key, private_key, token_in):
     print("Approving contract")
     # Create a contract instance for the token
     contract = web3.eth.contract(address=token_in, abi=ERC20_ABI)
@@ -192,7 +192,10 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
 
     if token_in == WETH_ADDRESS:
         wrap_eth(amount_in, public_key, private_key)
-    approve_contract(public_key, private_key, token_in, amount_in)
+    
+    allowance = check_approval(token_in, public_key)
+    if web3.from_wei(allowance, 'ether') < amount_in:
+        approve_contract(public_key, private_key, token_in)
 
     print("Executing Swap")
     uniswap_router = web3.eth.contract(address=UNISWAP_ROUTER_ADDRESS, abi=UNISWAP_ROUTER_ABI)
@@ -217,17 +220,20 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': swap_data
     }
+    try:
+        # Sign and send the transaction
+        signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+        # Wait for the transaction to be mined
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+        print(receipt)
 
-    # Sign and send the transaction
-    signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
-    tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
-    # Wait for the transaction to be mined
-    receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-    print(receipt)
-
-    # Check the transaction status
-    if receipt['status']:
-        print(f'Swap successful! {tx_hash}')
-        return receipt
-    else:
-        print('Swap failed.')
+        # Check the transaction status
+        if receipt['status']:
+            print(f'Swap successful! {tx_hash}')
+            return receipt
+        else:
+            print('Swap failed.')
+    except Exception as e:
+        print(f'An error occurred: {e}')
+    
