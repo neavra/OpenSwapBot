@@ -17,7 +17,7 @@ load_dotenv()
 
 TELE_TOKEN = os.getenv("TELE_TOKEN")
 
-ROUTE = range(1)
+ROUTE, VALIDATE_BUY_OPTIONS, BUY_TOKENS_CONFIRMATION, BUY_TOKENS, VALIDATE_SELL_OPTIONS = range(5)
 # Function to handle the /start command
 async def start(update: Update, context: CallbackContext):
     if update.message:
@@ -48,7 +48,7 @@ async def start(update: Update, context: CallbackContext):
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
-        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_confirmation"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
+        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -103,7 +103,17 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
         chat_id=update.effective_chat.id,
         text="Please enter a contract address"
     )
-    return ROUTE
+    return BUY_TOKENS_CONFIRMATION
+
+async def validate_buy_options(update: Update, context: CallbackContext):
+    validated = True
+    if not validated:
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Please enter a valid"
+    )
+    
+    return BUY_TOKENS 
 
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     # To be refactored into options menu
@@ -175,8 +185,11 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     return ROUTE
 
 async def buy_tokens(update: Update, context: CallbackContext):
-    query = update.callback_query
-    await query.answer()
+    if update.callback_query:
+        # Handling CallbackQueryHandler case
+        query = update.callback_query
+        await query.answer()
+
     user_id = context.user_data.get('user_id')
     # Send loading message to user
     loading_message = "Executing Swap, this might take a while..."
@@ -267,7 +280,10 @@ def main():
                 CallbackQueryHandler(buy_tokens_confirmation, pattern="^buy_tokens_confirmation$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
-            }
+            },
+            VALIDATE_BUY_OPTIONS: [MessageHandler(filters.Regex("^(0x)?[A-Fa-f0-9]{40}$"), validate_buy_options)],
+            BUY_TOKENS: [MessageHandler(filters.TEXT, buy_tokens)],
+            BUY_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, buy_tokens_confirmation)],
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
     )
