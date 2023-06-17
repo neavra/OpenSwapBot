@@ -132,7 +132,7 @@ def approve_contract(public_key, private_key, token_in):
     print("Approving contract")
     # Create a contract instance for the token
     contract = web3.eth.contract(address=token_in, abi=ERC20_ABI)
-    eth_amount = web3.to_wei(MAX_INT, 'ether') # Need to edit this to max amount
+    eth_amount = web3.to_wei(MAX_INT/(10**19), 'ether') # Need to edit this to max amount
 
     tx_data = contract.encodeABI(fn_name='approve', args = [UNISWAP_ROUTER_ADDRESS, eth_amount])
 
