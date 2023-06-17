@@ -17,7 +17,7 @@ load_dotenv()
 
 TELE_TOKEN = os.getenv("TELE_TOKEN")
 
-ROUTE, VALIDATE_BUY_OPTIONS, BUY_TOKENS_CONFIRMATION, BUY_TOKENS, VALIDATE_SELL_OPTIONS = range(5)
+ROUTE, BUY_TOKENS_CONFIRMATION, BUY_TOKENS = range(3)
 # Function to handle the /start command
 async def start(update: Update, context: CallbackContext):
     if update.message:
@@ -105,16 +105,6 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     )
     return BUY_TOKENS_CONFIRMATION
 
-async def validate_buy_options(update: Update, context: CallbackContext):
-    validated = True
-    if not validated:
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Please enter a valid"
-    )
-    
-    return BUY_TOKENS 
-
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     # To be refactored into options menu
     ##########################################################################################################################################################
@@ -142,8 +132,6 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_in_symbol'] = token_in_symbol
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
-
-    
 
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
@@ -281,7 +269,6 @@ def main():
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
             },
-            VALIDATE_BUY_OPTIONS: [MessageHandler(filters.Regex("^(0x)?[A-Fa-f0-9]{40}$"), validate_buy_options)],
             BUY_TOKENS: [MessageHandler(filters.TEXT, buy_tokens)],
             BUY_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, buy_tokens_confirmation)],
         },
