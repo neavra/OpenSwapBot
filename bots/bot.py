@@ -73,9 +73,15 @@ async def start(update: Update, context: CallbackContext):
     return ROUTE
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="I did not understand that command",
+        reply_markup= reply_markup
     )
 
 async def buy_tokens_options(update: Update, context: CallbackContext):
@@ -117,7 +123,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
     context.user_data['amount_in'] = 0.0001
     context.user_data['token_in'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
-    context.user_data['token_out'] = token_out #"0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
+    context.user_data['token_out'] = token_out
     context.user_data['public_key'] = public_key
     context.user_data['private_key'] = private_key
 
@@ -151,27 +157,45 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['path_bytes'] = path_bytes
     ##########################################################################################################################################################
 
-    amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
+    try:
+        amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
+        keyboard = [
+            [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    keyboard = [
-        [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f"""
+        Please confirm your order:
+        Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+        """
 
-    
-    message = f"""
-    Please confirm your order:
-    Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
-    """
+        await context.bot.send_message(
+                    chat_id=update.effective_chat.id, 
+                    text=message, 
+                    parse_mode="markdown", 
+                    reply_markup=reply_markup
+                )
+        return ROUTE
 
-    await context.bot.send_message(
-                chat_id=update.effective_chat.id, 
-                text=message, 
-                parse_mode="markdown", 
-                reply_markup=reply_markup
-            )
-    return ROUTE
+    except Exception as e:
+        keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        message = f"""
+        Error: {e}
+        When Swapping {token_in_symbol} for {token_out_symbol}
+        """
+
+        await context.bot.send_message(
+                    chat_id=update.effective_chat.id, 
+                    text=message, 
+                    parse_mode="markdown", 
+                    reply_markup=reply_markup
+                )
+        return ROUTE
 
 async def buy_tokens(update: Update, context: CallbackContext):
     if update.callback_query:
@@ -189,7 +213,6 @@ async def buy_tokens(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    address = server.firebase_utils.get_user_address(user_id)
     public_key = context.user_data['public_key']
     private_key = context.user_data['private_key']
     amount_in = context.user_data['amount_in']
@@ -199,18 +222,36 @@ async def buy_tokens(update: Update, context: CallbackContext):
     token_in_symbol = context.user_data['token_in_symbol']
     token_out_symbol = context.user_data['token_out_symbol']
 
-    receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
-    tx_hash = receipt['transactionHash'].hex()
-   
-    amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
-    await message.delete()
+    try:
+        receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
+        tx_hash = receipt['transactionHash'].hex()
+    
+        amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
+        await message.delete()
+        text = f"""
+                Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!
+                Tx hash: {tx_hash}
+                """
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text = text,
+            reply_markup= reply_markup
+        )
+        return ROUTE
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!\n Tx hash: {tx_hash}",
-        reply_markup= reply_markup
-    )
-    return ROUTE
+    except Exception as e:
+        await message.delete()
+        text = f"""
+                Error: {e}
+                When Swapping {token_in_symbol} for {token_out_symbol}
+                Tx Hash: {tx_hash}
+                """
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text = text,
+            reply_markup= reply_markup
+        )
+        return ROUTE
 
 async def sell_tokens_options(update: Update, context: CallbackContext):
     keyboard = [
@@ -285,42 +326,101 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['path_bytes'] = path_bytes
     ##########################################################################################################################################################
 
-    amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
+    try:
+        amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
+        keyboard = [
+            [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    keyboard = [
-        [InlineKeyboardButton("Confirm", callback_data="sell_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        message = f"""
+        Please confirm your order:
+        Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+        """
 
-    
-    message = f"""
-    Please confirm your order:
-    Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
-    """
+        await context.bot.send_message(
+                    chat_id=update.effective_chat.id, 
+                    text=message, 
+                    parse_mode="markdown", 
+                    reply_markup=reply_markup
+                )
+        return ROUTE
 
-    await context.bot.send_message(
-                chat_id=update.effective_chat.id, 
-                text=message, 
-                parse_mode="markdown", 
-                reply_markup=reply_markup
-            )
-    return ROUTE
+    except Exception as e:
+        keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        message = f"""
+        Error: {e}
+        When Swapping {token_in_symbol} for {token_out_symbol}
+        """
+
+        await context.bot.send_message(
+                    chat_id=update.effective_chat.id, 
+                    text=message, 
+                    parse_mode="markdown", 
+                    reply_markup=reply_markup
+                )
+        return ROUTE
 
 async def sell_tokens(update: Update, context: CallbackContext):
-    query = update.callback_query
-    await query.answer()
+    if update.callback_query:
+        # Handling CallbackQueryHandler case
+        query = update.callback_query
+        await query.answer()
+
+    user_id = context.user_data.get('user_id')
+    # Send loading message to user
+    loading_message = "Executing Swap, this might take a while..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
+
     keyboard = [
         [InlineKeyboardButton("Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text ="This is the sell tokens function",
-        reply_markup= reply_markup
-    )
-    return ROUTE
+    public_key = context.user_data['public_key']
+    private_key = context.user_data['private_key']
+    amount_in = context.user_data['amount_in']
+    token_in = context.user_data['token_in']
+    token_out = context.user_data['token_out']
+    
+    token_in_symbol = context.user_data['token_in_symbol']
+    token_out_symbol = context.user_data['token_out_symbol']
+
+    try:
+        receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
+        tx_hash = receipt['transactionHash'].hex()
+    
+        amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
+        await message.delete()
+        text = f"""
+                Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!
+                Tx hash: {tx_hash}
+                """
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text = text,
+            reply_markup= reply_markup
+        )
+        return ROUTE
+
+    except Exception as e:
+        await message.delete()
+        text = f"""
+                Error: {e}
+                When Swapping {token_in_symbol} for {token_out_symbol}
+                Tx Hash: {tx_hash}
+                """
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text = text,
+            reply_markup= reply_markup
+        )
+        return ROUTE
 
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
