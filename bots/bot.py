@@ -210,72 +210,36 @@ async def buy_tokens(update: Update, context: CallbackContext):
     )
     return ROUTE
 
-async def tick1(update: Update, context: CallbackContext):
+async def toggle_switch(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
-    global toggle1
-    toggle1 = not toggle1
-    global toggle2
-    toggle2 = False
 
-    if toggle1 == True:
-        emoji1 = '\u2714'
+    callback_data = query.data
+    toggle_state = context.user_data.get('toggle_state')
+    emoji = context.user_data.get('emoji')
+
+    toggle_state[callback_data] = not toggle_state[callback_data]
+
+
+    if toggle_state[callback_data] == True:
+        emoji[callback_data] = '\u2705'
 
     else:
-        emoji1 = ''
+        emoji[callback_data] = ''
     
     
     keyboard = keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton(f'Option 1 {emoji1}', callback_data='tick1'),
+            InlineKeyboardButton(f"Option 1 {emoji['amount_option_1']}", callback_data='amount_option_1'),
     
-            InlineKeyboardButton(f'Option 2', callback_data="tick2"), 
+            InlineKeyboardButton(f"Option 2 {emoji['amount_option_2']}", callback_data="amount_option_2"), 
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
-
-        ],
-        [
-            InlineKeyboardButton("Back", callback_data="start"),
-        ],
-    ]
-    reply_markup= InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(
-        text = "Please choose:", 
-        reply_markup=reply_markup
-
-    )
-
-async def tick2(update: Update, context: CallbackContext):
-    query= update.callback_query 
-    await query.answer()
-    global toggle2
-    toggle2 = not toggle2
-    global toggle1
-    toggle1 = False
-    if toggle2 == True:
-        emoji2 = '\u2714'
-
-    else:
-        emoji2 = ''
-    
-    
-    keyboard = keyboard = [
-        [InlineKeyboardButton("sell Amount", callback_data="start")],
-        [
-            InlineKeyboardButton(f'Option 1', callback_data='tick1'),
-    
-            InlineKeyboardButton(f'Option 2 {emoji2}', callback_data="tick2"), 
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="start")],
-        [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
+            InlineKeyboardButton(f"Option 1 {emoji['slippage_option_1']}", callback_data="slippage_option_1"),
+            InlineKeyboardButton(f"Option 2 {emoji['slippage_option_2']}", callback_data="slippage_option_2"),
+            InlineKeyboardButton(f"Option 3 {emoji['slippage_option_3']}", callback_data="slippage_option_3"),
 
         ],
         [
@@ -290,24 +254,36 @@ async def tick2(update: Update, context: CallbackContext):
     )
     
 async def sell_tokens_options(update: Update, context: CallbackContext):
-    global toggle1
-    toggle1 = False
 
-    global toggle2
-    toggle2 = False
+    #toggle_state dictionary
+    context.user_data ['toggle_state'] = {
+        'amount_option_1' : False , 
+        'amount_option_2' : False ,
+        'slippage_option_1' : False ,
+        'slippage_option_2' : False ,
+        'slippage_option_3' : False ,
+        }
+    #emoji dictionary
+    context.user_data ['emoji'] = {
+        'amount_option_1' : '' , 
+        'amount_option_2' : '' ,
+        'slippage_option_1' : '' ,
+        'slippage_option_2' : '' ,
+        'slippage_option_3' : '' ,
+        }
 
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton(f'Option 1', callback_data="tick1"),
+            InlineKeyboardButton(f'Option 1', callback_data="amount_option_1"),
     
-            InlineKeyboardButton("Option 2", callback_data="tick2"), 
+            InlineKeyboardButton("Option 2", callback_data="amount_option_2"), 
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
+            InlineKeyboardButton("Option 1", callback_data="slippage_option_1"),
+            InlineKeyboardButton("Option 2", callback_data="slippage_option_2"),
+            InlineKeyboardButton("Option 3", callback_data="slippage_option_3"),
 
         ],
         [
@@ -354,8 +330,11 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
-                CallbackQueryHandler(tick1, pattern="^tick1$"),
-                CallbackQueryHandler(tick2, pattern="^tick2$"),
+                CallbackQueryHandler(toggle_switch, pattern="^amount_option_1$"),
+                CallbackQueryHandler(toggle_switch, pattern="^amount_option_2$"),
+                CallbackQueryHandler(toggle_switch, pattern="^slippage_option_1$"),
+                CallbackQueryHandler(toggle_switch, pattern="^slippage_option_2$"),
+                CallbackQueryHandler(toggle_switch, pattern="^slippage_option_3$"),
                 CallbackQueryHandler(buy_tokens_confirmation, pattern="^buy_tokens_confirmation$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
