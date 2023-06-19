@@ -244,7 +244,6 @@ async def buy_tokens(update: Update, context: CallbackContext):
         text = f"""
                 Error: {e}
                 When Swapping {token_in_symbol} for {token_out_symbol}
-                Tx Hash: {tx_hash}
                 """
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -283,7 +282,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
         chat_id=update.effective_chat.id,
         text="Please enter the token you would like to sell"
     )
-    return ROUTE
+    return SELL_TOKENS_CONFIRMATION
 
 async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     # To be refactored into options menu
@@ -458,7 +457,7 @@ async def toggle(update: Update, context: CallbackContext):
     await query.edit_message_text(
         text = "Please choose:", 
         reply_markup=reply_markup)
-    return ROUTE
+    return SELL_TOKENS_CONFIRMATION
 
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
@@ -476,13 +475,14 @@ def main():
                 CallbackQueryHandler(sell_tokens_confirmation, pattern="^sell_tokens_confirmation$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
-                CallbackQueryHandler(toggle, pattern="^toggle_10$"),
-                CallbackQueryHandler(toggle, pattern="^toggle_20$"),
             },
             BUY_TOKENS: [MessageHandler(filters.TEXT, buy_tokens)],
             BUY_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, buy_tokens_confirmation)],
-            SELL_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, sell_tokens_confirmation)],
-
+            SELL_TOKENS_CONFIRMATION: {
+                MessageHandler(filters.TEXT, sell_tokens_confirmation),
+                CallbackQueryHandler(toggle, pattern="^toggle_10$"),
+                CallbackQueryHandler(toggle, pattern="^toggle_20$"),
+            }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
     )
