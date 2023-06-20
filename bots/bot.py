@@ -153,7 +153,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         text =f"{str(validation_result)}",
         reply_markup= reply_markup
         )
-        return
+        return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
@@ -346,7 +346,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         text =f"{str(validation_result)}",
         reply_markup= reply_markup
         )
-        return
+        return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
