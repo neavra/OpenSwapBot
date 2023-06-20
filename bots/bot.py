@@ -143,6 +143,11 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
     if validation_result:
+        keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text =f"{str(validation_result)}",
@@ -331,6 +336,11 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
     if validation_result:
+        keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text =f"{str(validation_result)}",
