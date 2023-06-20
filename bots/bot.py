@@ -253,22 +253,34 @@ async def buy_tokens(update: Update, context: CallbackContext):
         return ROUTE
 
 async def sell_tokens_options(update: Update, context: CallbackContext):
-    toggle_states = {}
-    toggle_states["toggle_10"] = False
-    toggle_states["toggle_20"] = False
+    toggle_states = {
+        'toggle_10' : False,
+        'toggle_20' : False,
+        'slippage_10' : False,
+        'slippage_20' : False,
+        'slippage_30' : False,
+    }
+    emoji ={
+        'toggle_10' : '',
+        'toggle_20' : '',
+        'slippage_10' : '',
+        'slippage_20' : '',
+        'slippage_30' : '',
+    }
+    
     context.user_data["toggle_states"] = toggle_states # Save the toggle states in the context object
-
+    context.user_data["emoji"] = emoji
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="toggle_10"),
-            InlineKeyboardButton("Option 2", callback_data="toggle_20"),
+            InlineKeyboardButton("0.001", callback_data="toggle_10"),
+            InlineKeyboardButton("0.002", callback_data="toggle_20"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
+            InlineKeyboardButton("1", callback_data="slippage_10"),
+            InlineKeyboardButton("2", callback_data="slippage_20"),
+            InlineKeyboardButton("3", callback_data="slippage_30"),
 
         ],
     ]
@@ -432,24 +444,65 @@ async def toggle(update: Update, context: CallbackContext):
     callback_data = query.data
 
     toggle_states = context.user_data["toggle_states"]
-    # Check call back data and modify statess
-    toggle_states[callback_data] = not toggle_states[callback_data]
+    emoji = context.user_data["emoji"]
+    
+    # Prevent mulitple selection of the same category and toggles switch
+    if toggle_states["toggle_20"] == True and callback_data == 'toggle_10': #toggles from toggle_20 
+        toggle_states[callback_data] = not toggle_states[callback_data]
+        toggle_states["toggle_20"] = False
 
+    elif toggle_states["toggle_10"] == True and callback_data == 'toggle_20': #toggles from toggle_10 
+        toggle_states[callback_data] = not toggle_states[callback_data]
+        toggle_states["toggle_10"] = False
+
+    elif toggle_states["slippage_10"] == True and (callback_data == 'slippage_20' or callback_data == 'slippage_30'): #toggles from slippage_10
+        toggle_states[callback_data] = not toggle_states[callback_data]
+        toggle_states["slippage_10"] = False
+        if callback_data == 'slippage_20':
+            alternative = 'slippage_30'
+        else:
+            alternative = 'slippage_20'
+        toggle_states[alternative] = False
+
+    elif toggle_states["slippage_20"] == True and (callback_data == 'slippage_10' or callback_data == 'slippage_30'): #toggles from slippage_20
+        toggle_states[callback_data] = not toggle_states[callback_data]
+        toggle_states["slippage_20"] = False
+        if callback_data == 'slippage_10':
+            alternative = 'slippage_30'
+        else:
+            alternative = 'slippage_10'
+        toggle_states[alternative] = False
+
+    elif toggle_states["slippage_30"] == True and (callback_data == 'slippage_20' or callback_data == 'slippage_10'): #toggles from slippage_30
+        toggle_states[callback_data] = not toggle_states[callback_data]
+        toggle_states["slippage_30"] = False
+        if callback_data == 'slippage_20':
+            alternative = 'slippage_10'
+        else:
+            alternative = 'slippage_20'
+        toggle_states[alternative] = False
+    
+    else: #toggles switch on/off
+        toggle_states[callback_data] = not toggle_states[callback_data]
+        
     # Read toggle states and determine if emoji should show up
-    emoji_10 = '\u2714' if toggle_states["toggle_10"] else ''
-    emoji_20 = '\u2714' if toggle_states["toggle_20"] else ''
+    emoji["toggle_10"] = '\u2705' if toggle_states["toggle_10"] else ''
+    emoji["toggle_20"] = '\u2705' if toggle_states["toggle_20"] else ''
+    emoji["slippage_10"] = '\u2705' if toggle_states["slippage_10"] else ''
+    emoji["slippage_20"] = '\u2705' if toggle_states["slippage_20"] else ''
+    emoji["slippage_30"] = '\u2705' if toggle_states["slippage_30"] else ''
 
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton(f'Option 1 {emoji_10}', callback_data="toggle_10"),
-            InlineKeyboardButton(f'Option 2 {emoji_20}', callback_data="toggle_20"),
+            InlineKeyboardButton(f'0.001 {emoji["toggle_10"]}', callback_data="toggle_10"),
+            InlineKeyboardButton(f'0.002 {emoji["toggle_20"]}', callback_data="toggle_20"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
+            InlineKeyboardButton(f'1 {emoji["slippage_10"]}', callback_data="slippage_10"),
+            InlineKeyboardButton(f'2 {emoji["slippage_20"]}', callback_data="slippage_20"),
+            InlineKeyboardButton(f'3 {emoji["slippage_30"]}', callback_data="slippage_30"),
 
         ],
     ]
@@ -482,6 +535,9 @@ def main():
                 MessageHandler(filters.TEXT, sell_tokens_confirmation),
                 CallbackQueryHandler(toggle, pattern="^toggle_10$"),
                 CallbackQueryHandler(toggle, pattern="^toggle_20$"),
+                CallbackQueryHandler(toggle, pattern="^slippage_10$"),
+                CallbackQueryHandler(toggle, pattern="^slippage_20$"),
+                CallbackQueryHandler(toggle, pattern="^slippage_30$"),
             }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
