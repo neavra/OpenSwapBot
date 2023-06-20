@@ -256,10 +256,13 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     toggle_states = {
         'toggle_10' : False,
         'toggle_20' : False,
+    }
+    slippage_states= {
         'slippage_10' : False,
         'slippage_20' : False,
         'slippage_30' : False,
     }
+
     emoji ={
         'toggle_10' : '',
         'toggle_20' : '',
@@ -269,6 +272,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     }
     
     context.user_data["toggle_states"] = toggle_states # Save the toggle states in the context object
+    context.user_data["slippage_states"] = slippage_states
     context.user_data["emoji"] = emoji
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
@@ -442,55 +446,31 @@ async def toggle(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
     callback_data = query.data
+    category = callback_data[:-3]
 
     toggle_states = context.user_data["toggle_states"]
+    slippage_states = context.user_data["slippage_states"]
     emoji = context.user_data["emoji"]
-    
-    # Prevent mulitple selection of the same category and toggles switch
-    if toggle_states["toggle_20"] == True and callback_data == 'toggle_10': #toggles from toggle_20 
+    if category == 'toggle':
+        # Prevent mulitple selection of the same category and toggles switch
         toggle_states[callback_data] = not toggle_states[callback_data]
-        toggle_states["toggle_20"] = False
+        if toggle_states[callback_data]:
+            for key, value in toggle_states.items():
+                if value and key != callback_data:
+                    toggle_states[key] = False   
+    elif category == 'slippage':
+        slippage_states[callback_data] = not slippage_states[callback_data]
+        if slippage_states[callback_data]:
+            for key, value in slippage_states.items():
+                if value and key != callback_data:
+                    slippage_states[key] = False
 
-    elif toggle_states["toggle_10"] == True and callback_data == 'toggle_20': #toggles from toggle_10 
-        toggle_states[callback_data] = not toggle_states[callback_data]
-        toggle_states["toggle_10"] = False
-
-    elif toggle_states["slippage_10"] == True and (callback_data == 'slippage_20' or callback_data == 'slippage_30'): #toggles from slippage_10
-        toggle_states[callback_data] = not toggle_states[callback_data]
-        toggle_states["slippage_10"] = False
-        if callback_data == 'slippage_20':
-            alternative = 'slippage_30'
-        else:
-            alternative = 'slippage_20'
-        toggle_states[alternative] = False
-
-    elif toggle_states["slippage_20"] == True and (callback_data == 'slippage_10' or callback_data == 'slippage_30'): #toggles from slippage_20
-        toggle_states[callback_data] = not toggle_states[callback_data]
-        toggle_states["slippage_20"] = False
-        if callback_data == 'slippage_10':
-            alternative = 'slippage_30'
-        else:
-            alternative = 'slippage_10'
-        toggle_states[alternative] = False
-
-    elif toggle_states["slippage_30"] == True and (callback_data == 'slippage_20' or callback_data == 'slippage_10'): #toggles from slippage_30
-        toggle_states[callback_data] = not toggle_states[callback_data]
-        toggle_states["slippage_30"] = False
-        if callback_data == 'slippage_20':
-            alternative = 'slippage_10'
-        else:
-            alternative = 'slippage_20'
-        toggle_states[alternative] = False
-    
-    else: #toggles switch on/off
-        toggle_states[callback_data] = not toggle_states[callback_data]
-        
     # Read toggle states and determine if emoji should show up
     emoji["toggle_10"] = '\u2705' if toggle_states["toggle_10"] else ''
     emoji["toggle_20"] = '\u2705' if toggle_states["toggle_20"] else ''
-    emoji["slippage_10"] = '\u2705' if toggle_states["slippage_10"] else ''
-    emoji["slippage_20"] = '\u2705' if toggle_states["slippage_20"] else ''
-    emoji["slippage_30"] = '\u2705' if toggle_states["slippage_30"] else ''
+    emoji["slippage_10"] = '\u2705' if slippage_states["slippage_10"] else ''
+    emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
+    emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
 
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
