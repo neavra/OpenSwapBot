@@ -142,18 +142,18 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
-    if validation_result:
-        keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+    # if validation_result:
+    #     keyboard = [
+    #         [InlineKeyboardButton("Go back", callback_data="start")]
+    #     ]
+    #     reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"{str(validation_result)}",
-        reply_markup= reply_markup
-        )
-        return ROUTE
+    #     await context.bot.send_message(
+    #     chat_id=update.effective_chat.id,
+    #     text =f"{str(validation_result)}",
+    #     reply_markup= reply_markup
+    #     )
+    #     return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
@@ -313,15 +313,22 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     address = server.firebase_utils.get_user_address(user_id)
     public_key = address[0]
     private_key = address[1]
+    toggle_states = context.user_data["toggle_states"]
 
-    context.user_data['amount_in'] = 0.0001
+    for key, value in toggle_states.items():
+        if value == True:
+            amount_button_data = int(key[-2:])
+            multiplier = int('10000')
+            amount_in = amount_button_data / multiplier
+
+    context.user_data['amount_in'] = amount_in
     context.user_data['token_in'] = token_in
     context.user_data['token_out'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH
     context.user_data['public_key'] = public_key
     context.user_data['private_key'] = private_key
 
     amount_in = context.user_data['amount_in']
-    amount_in = 0.0001
+    #amount_in = 0.0001
     token_in = context.user_data['token_in']
     token_out = context.user_data['token_out']
 
@@ -335,18 +342,18 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
     validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
-    if validation_result:
-        keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+    # if validation_result:
+    #     keyboard = [
+    #         [InlineKeyboardButton("Go back", callback_data="start")]
+    #     ]
+    #     reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"{str(validation_result)}",
-        reply_markup= reply_markup
-        )
-        return ROUTE
+    #     await context.bot.send_message(
+    #     chat_id=update.effective_chat.id,
+    #     text =f"{str(validation_result)}",
+    #     reply_markup= reply_markup
+    #     )
+    #     return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
