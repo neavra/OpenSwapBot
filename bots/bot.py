@@ -258,8 +258,8 @@ async def buy_tokens(update: Update, context: CallbackContext):
 
 async def sell_tokens_options(update: Update, context: CallbackContext):
     toggle_states = {
-        'toggle_10' : False,
-        'toggle_20' : False,
+        'toggle_0.001' : False,
+        'toggle_0.002' : False,
     }
     slippage_states= {
         'slippage_10' : False,
@@ -268,8 +268,8 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     }
 
     emoji ={
-        'toggle_10' : '',
-        'toggle_20' : '',
+        'toggle_0.001' : '',
+        'toggle_0.002' : '',
         'slippage_10' : '',
         'slippage_20' : '',
         'slippage_30' : '',
@@ -281,8 +281,8 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton("0.001", callback_data="toggle_10"),
-            InlineKeyboardButton("0.002", callback_data="toggle_20"),
+            InlineKeyboardButton("0.001", callback_data="toggle_0.001"),
+            InlineKeyboardButton("0.002", callback_data="toggle_0.002"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
@@ -305,8 +305,6 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     return SELL_TOKENS_CONFIRMATION
 
 async def sell_tokens_confirmation(update: Update, context: CallbackContext):
-    # To be refactored into options menu
-    ##########################################################################################################################################################
     user_id = context.user_data.get('user_id')
     token_in = update.message.text
 
@@ -317,10 +315,8 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
     for key, value in toggle_states.items():
         if value == True:
-            amount_button_data = int(key[-2:])
-            multiplier = int('10000')
-            amount_in = amount_button_data / multiplier
-
+            amount_in = float(key[-5:])
+            
     context.user_data['amount_in'] = amount_in
     context.user_data['token_in'] = token_in
     context.user_data['token_out'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH
@@ -340,7 +336,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
 
-    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
+    # validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
 
     # if validation_result:
     #     keyboard = [
@@ -359,13 +355,12 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
 
     context.user_data['path_bytes'] = path_bytes
-    ##########################################################################################################################################################
 
     try:
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
         keyboard = [
-            [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
+            [InlineKeyboardButton("Confirm", callback_data="sell_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -461,7 +456,7 @@ async def toggle(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
     callback_data = query.data
-    category = callback_data[:-3]
+    category = callback_data[:-6]
 
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
@@ -479,10 +474,21 @@ async def toggle(update: Update, context: CallbackContext):
             for key, value in slippage_states.items():
                 if value and key != callback_data:
                     slippage_states[key] = False
+    else:
+        keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"No Category found",
+        reply_markup= reply_markup
+        )
+        return ROUTE
     # Read toggle states and determine if emoji should show up
-    emoji["toggle_10"] = '\u2705' if toggle_states["toggle_10"] else ''
-    emoji["toggle_20"] = '\u2705' if toggle_states["toggle_20"] else ''
+    emoji["toggle_0.001"] = '\u2705' if toggle_states["toggle_0.001"] else ''
+    emoji["toggle_0.002"] = '\u2705' if toggle_states["toggle_0.002"] else ''
     emoji["slippage_10"] = '\u2705' if slippage_states["slippage_10"] else ''
     emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
     emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
@@ -490,8 +496,8 @@ async def toggle(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
-            InlineKeyboardButton(f'0.001 {emoji["toggle_10"]}', callback_data="toggle_10"),
-            InlineKeyboardButton(f'0.002 {emoji["toggle_20"]}', callback_data="toggle_20"),
+            InlineKeyboardButton(f'0.001 {emoji["toggle_0.001"]}', callback_data="toggle_0.001"),
+            InlineKeyboardButton(f'0.002 {emoji["toggle_0.002"]}', callback_data="toggle_0.002"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
@@ -528,8 +534,8 @@ def main():
             BUY_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, buy_tokens_confirmation)],
             SELL_TOKENS_CONFIRMATION: {
                 MessageHandler(filters.TEXT, sell_tokens_confirmation),
-                CallbackQueryHandler(toggle, pattern="^toggle_10$"),
-                CallbackQueryHandler(toggle, pattern="^toggle_20$"),
+                CallbackQueryHandler(toggle, pattern="^toggle_0.001$"),
+                CallbackQueryHandler(toggle, pattern="^toggle_0.002$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_10$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_20$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_30$"),
