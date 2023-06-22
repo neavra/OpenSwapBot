@@ -273,6 +273,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
         'slippage_10' : '',
         'slippage_20' : '',
         'slippage_30' : '',
+    
     }
     
     context.user_data["toggle_states"] = toggle_states # Save the toggle states in the context object
@@ -312,10 +313,26 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     public_key = address[0]
     private_key = address[1]
     toggle_states = context.user_data["toggle_states"]
+    slippage_states = context.user_data["slippage_states"]
 
     for key, value in toggle_states.items():
         if value == True:
             amount_in = float(key[-5:])
+    #checks if an amount was selected
+    if all(value is False for value in toggle_states.values()) or all(value is False for value in slippage_states.values()):
+        keyboard = [
+            [InlineKeyboardButton("Go back", callback_data="sell_tokens_options")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"Please select an amount and slippage",
+        reply_markup= reply_markup
+        )
+        return ROUTE
+
+
             
     context.user_data['amount_in'] = amount_in
     context.user_data['token_in'] = token_in
@@ -324,7 +341,6 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['private_key'] = private_key
 
     amount_in = context.user_data['amount_in']
-    #amount_in = 0.0001
     token_in = context.user_data['token_in']
     token_out = context.user_data['token_out']
 
@@ -456,43 +472,30 @@ async def toggle(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
     callback_data = query.data
-    category = callback_data[:-6]
+    category = callback_data[:3]
 
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
     emoji = context.user_data["emoji"]
-    if category == 'toggle':
+    if category == 'tog':
         # Prevent mulitple selection of the same category and toggles switch
         toggle_states[callback_data] = not toggle_states[callback_data]
         if toggle_states[callback_data]:
             for key, value in toggle_states.items():
                 if value and key != callback_data:
                     toggle_states[key] = False   
-    elif category == 'slippage':
+    elif category == 'sli':
         slippage_states[callback_data] = not slippage_states[callback_data]
         if slippage_states[callback_data]:
             for key, value in slippage_states.items():
                 if value and key != callback_data:
                     slippage_states[key] = False
-    else:
-        keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"No Category found",
-        reply_markup= reply_markup
-        )
-        return ROUTE
-    # Read toggle states and determine if emoji should show up
+    
     emoji["toggle_0.001"] = '\u2705' if toggle_states["toggle_0.001"] else ''
     emoji["toggle_0.002"] = '\u2705' if toggle_states["toggle_0.002"] else ''
     emoji["slippage_10"] = '\u2705' if slippage_states["slippage_10"] else ''
     emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
     emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
-
     keyboard = [
         [InlineKeyboardButton("sell Amount", callback_data="start")],
         [
@@ -512,6 +515,7 @@ async def toggle(update: Update, context: CallbackContext):
         text = "Please choose:", 
         reply_markup=reply_markup)
     return SELL_TOKENS_CONFIRMATION
+
 
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
@@ -539,7 +543,7 @@ def main():
                 CallbackQueryHandler(toggle, pattern="^slippage_10$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_20$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_30$"),
-            }
+            },
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
     )
@@ -547,7 +551,6 @@ def main():
 
     app.run_polling()
     return
-
 
 if __name__ == '__main__':
     main()
