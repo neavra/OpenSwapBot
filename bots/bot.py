@@ -139,21 +139,6 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_in_symbol'] = token_in_symbol
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
-
-    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
-
-    if validation_result:
-        keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"{str(validation_result)}",
-        reply_markup= reply_markup
-        )
-        return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
@@ -332,21 +317,6 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_in_symbol'] = token_in_symbol
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
-
-    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
-
-    if validation_result:
-        keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text =f"{str(validation_result)}",
-        reply_markup= reply_markup
-        )
-        return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)

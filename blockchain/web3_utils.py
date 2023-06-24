@@ -57,8 +57,17 @@ def get_nonce(public_key):
 def get_symbol(token_address):
     contract = web3.eth.contract(address=token_address, abi=ERC20_ABI)
     symbol = contract.functions.symbol().call()
-
+    if symbol == 'WETH':
+        return 'ETH'
     return symbol
+
+def get_balanceOf(public_key):
+    contract = web3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
+
+    balance = contract.functions.balanceOf(public_key).call()
+    balance_in_ether = web3.from_wei(balance, 'ether')
+
+    return balance_in_ether
 
 def encode_path(path, fees, exact_input):
     FEE_SIZE = 6
@@ -85,7 +94,6 @@ def parse_swap_receipt(receipt, token_address, public_key):
     for log in receipt.logs:
         if log.topics[0].hex() == event_signature:
             processed_log = contract.events.Transfer().process_log(log) # Decode Log
-            print(processed_log)
             if processed_log.args.to.lower() == public_key.lower():
                 amount_out = round(Web3.from_wei(processed_log.args.amount, 'ether'), 5)
                 return amount_out
@@ -121,6 +129,36 @@ def wrap_eth(amount, public_key, private_key):
         return tx_hash
     else:
         print('Wrapping failed.')
+
+def unwrap_eth(amount, public_key, private_key):
+    print("Unwrapping WETH to ETH")
+
+    weth_contract = web3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
+    wad = web3.to_wei(amount, 'ether')
+
+    tx_data = weth_contract.encodeABI(fn_name='withdraw', args=[wad])
+
+    # Create a transaction object
+    transaction = {
+        'to': WETH_ADDRESS,
+        'value': 0,
+        'gas': 200000,
+        'gasPrice': web3.eth.gas_price,
+        'nonce': web3.eth.get_transaction_count(public_key),
+        'data': tx_data,
+    }
+
+    signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+
+    tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+
+    receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+    if receipt['status']:
+        print(f'Unwrapping successful! {tx_hash}')
+        return tx_hash
+    else:
+        print('Unwrapping failed.')
 
 def check_approval(token_in, public_key):
     print("Checking approval")
@@ -159,23 +197,6 @@ def approve_contract(public_key, private_key, token_in):
     else:
         print('Approval failed.')
 
-def validate_params(token_in, token_out, public_key, amount_in):
-    # Should validate contract address, and validate token balances
-    contract_in = web3.eth.contract(address=token_in, abi=ERC20_ABI)
-    contract_out = web3.eth.contract(address=token_out, abi=ERC20_ABI)
-    amount = web3.to_wei(amount_in, 'ether')
-    try:        
-        balance_in = contract_in.functions.balanceOf(public_key).call()
-        balance_out = contract_out.functions.balanceOf(public_key).call()
-        
-        if balance_in < amount:
-            raise ValueError("Insufficient balance in your wallet")
-        
-    except Exception as e:
-        # Handle the exception here
-        print("Validation error:", str(e))
-        return e
-
 async def get_swap_quote(path, amount_in):
     eth_amount = web3.to_wei(amount_in, 'ether')
 
@@ -190,7 +211,7 @@ async def get_swap_quote(path, amount_in):
 
 async def swap_token(token_in, token_out, public_key, private_key, amount_in):
 
-    if token_in == WETH_ADDRESS:
+    if token_in == WETH_ADDRESS: # This should be changed to an order side field instead instead
         wrap_eth(amount_in, public_key, private_key)
     
     allowance = check_approval(token_in, public_key)
@@ -226,10 +247,13 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
         tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
         # Wait for the transaction to be mined
         receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-        print(receipt)
 
         # Check the transaction status
         if receipt['status']:
+            if token_out == WETH_ADDRESS:
+                amount = get_balanceOf(public_key)
+                unwrap_tx_hash = unwrap_eth(amount, public_key,private_key)
+                print(f'Unwrap Succesful! {unwrap_tx_hash}')
             print(f'Swap successful! {tx_hash}')
             return receipt
         else:
