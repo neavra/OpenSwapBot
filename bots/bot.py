@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from dotenv import load_dotenv
@@ -15,9 +16,18 @@ import server.firebase_utils
 
 load_dotenv()
 
+# Logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 TELE_TOKEN = os.getenv("TELE_TOKEN")
 
 ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION = range(3)
+FEES = [3000]
+WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 # Function to handle the /start command
 async def start(update: Update, context: CallbackContext):
     if update.message:
@@ -137,10 +147,6 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     user_id = context.user_data.get('user_id')
     token_out = update.message.text
-
-    address = server.firebase_utils.get_user_address(user_id)
-    public_key = address[0]
-    private_key = address[1]
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
     amount_in = 0
@@ -165,31 +171,28 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         reply_markup= reply_markup
         )
         return ROUTE
+    address = server.firebase_utils.get_user_address(user_id)
 
-    context.user_data['amount_in'] = amount_in
-    context.user_data['slipapge'] = slippage
-    context.user_data['token_in'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
-    context.user_data['token_out'] = token_out
-    context.user_data['public_key'] = public_key
-    context.user_data['private_key'] = private_key
-
-    amount_in = context.user_data['amount_in']
-    token_in = context.user_data['token_in']
-    token_out = context.user_data['token_out']
-
-    token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
+    token_in_symbol = blockchain.web3_utils.get_symbol(WETH_ADDRESS)
     token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
-    fees = [3000]
-
-    context.user_data['token_in_symbol'] = token_in_symbol
-    context.user_data['token_out_symbol'] = token_out_symbol
-    context.user_data['fees'] = fees
     
-    
-    path = [token_in, token_out]
-    path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
+    path = [WETH_ADDRESS, token_out]
+    path_bytes = blockchain.web3_utils.encode_path(path, FEES, True)
 
-    context.user_data['path_bytes'] = path_bytes
+    order = {
+        'user_id': user_id,
+        'side': 'Sell',
+        'amount_in': amount_in,
+        'slippage': slippage,
+        'token_in': WETH_ADDRESS,
+        'token_out': token_out,
+        'token_in_symbol': token_in_symbol,
+        'token_out_symbol': token_out_symbol,
+        'public_key': address[0],
+        'private_key': address[1],
+        'path_bytes': path_bytes,
+    }
+    context.user_data['order'] = order
 
     try:
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
@@ -237,7 +240,6 @@ async def buy_tokens(update: Update, context: CallbackContext):
         query = update.callback_query
         await query.answer()
 
-    user_id = context.user_data.get('user_id')
     # Send loading message to user
     loading_message = "Executing Swap, this might take a while..."
     message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
@@ -246,24 +248,16 @@ async def buy_tokens(update: Update, context: CallbackContext):
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    public_key = context.user_data['public_key']
-    private_key = context.user_data['private_key']
-    amount_in = context.user_data['amount_in']
-    token_in = context.user_data['token_in']
-    token_out = context.user_data['token_out']
-    
-    token_in_symbol = context.user_data['token_in_symbol']
-    token_out_symbol = context.user_data['token_out_symbol']
-
+    order = context.user_data['order']
+    logger.info(f'Processing Order: {order}')
     try:
-        receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
+        receipt = await blockchain.web3_utils.swap_token(order['token_in'], order['token_out'], order['public_key'], order['private_key'], order['amount_in'])
         tx_hash = receipt['transactionHash'].hex()
     
-        amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
+        amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])
         await message.delete()
         text = f"""
-                Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!
+                Swapped {order['amount_in']} of {order['token_in_symbol']} for {amount_out} of {order['token_out_symbol']}!
                 Tx hash: {tx_hash}
                 """
         await context.bot.send_message(
@@ -277,7 +271,7 @@ async def buy_tokens(update: Update, context: CallbackContext):
         await message.delete()
         text = f"""
                 Error: {e}
-                When Swapping {token_in_symbol} for {token_out_symbol}
+                When Swapping {order['token_in_symbol']} for {order['token_out_symbol']}
                 """
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -339,10 +333,6 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
 async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     user_id = context.user_data.get('user_id')
     token_in = update.message.text
-
-    address = server.firebase_utils.get_user_address(user_id)
-    public_key = address[0]
-    private_key = address[1]
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
     amount_in = 0
@@ -367,33 +357,29 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         reply_markup= reply_markup
         )
         return ROUTE
-
-        
-    
-    context.user_data['amount_in'] = amount_in
-    context.user_data['slippage_in'] = slippage
-    context.user_data['token_in'] = token_in
-    context.user_data['token_out'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH
-    context.user_data['public_key'] = public_key
-    context.user_data['private_key'] = private_key
-
-    amount_in = context.user_data['amount_in']
-    token_in = context.user_data['token_in']
-    token_out = context.user_data['token_out']
+  
+    address = server.firebase_utils.get_user_address(user_id)
 
     token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
-    token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
-    fees = [3000]
-
-    context.user_data['token_in_symbol'] = token_in_symbol
-    context.user_data['token_out_symbol'] = token_out_symbol
-    context.user_data['fees'] = fees
-
+    token_out_symbol = blockchain.web3_utils.get_symbol(WETH_ADDRESS)
     
-    path = [token_in, token_out]
-    path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
+    path = [token_in, WETH_ADDRESS]
+    path_bytes = blockchain.web3_utils.encode_path(path, FEES, True)
 
-    context.user_data['path_bytes'] = path_bytes
+    order = {
+        'user_id': user_id,
+        'side': 'Sell',
+        'amount_in': amount_in,
+        'slippage': slippage,
+        'token_in': token_in,
+        'token_out': WETH_ADDRESS,
+        'token_in_symbol': token_in_symbol,
+        'token_out_symbol': token_out_symbol,
+        'public_key': address[0],
+        'private_key': address[1],
+        'path_bytes': path_bytes,
+    }
+    context.user_data['order'] = order
 
     try:
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
@@ -441,7 +427,6 @@ async def sell_tokens(update: Update, context: CallbackContext):
         query = update.callback_query
         await query.answer()
 
-    user_id = context.user_data.get('user_id')
     # Send loading message to user
     loading_message = "Executing Swap, this might take a while..."
     message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
@@ -450,24 +435,16 @@ async def sell_tokens(update: Update, context: CallbackContext):
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    public_key = context.user_data['public_key']
-    private_key = context.user_data['private_key']
-    amount_in = context.user_data['amount_in']
-    token_in = context.user_data['token_in']
-    token_out = context.user_data['token_out']
-    
-    token_in_symbol = context.user_data['token_in_symbol']
-    token_out_symbol = context.user_data['token_out_symbol']
-
+    order = context.user_data['order']
+    logger.info(f'Processing Order: {order}')
     try:
-        receipt = await blockchain.web3_utils.swap_token(token_in, token_out, public_key, private_key, amount_in)
+        receipt = await blockchain.web3_utils.swap_token(order['token_in'], order['token_out'], order['public_key'], order['private_key'], order['amount_in'])
         tx_hash = receipt['transactionHash'].hex()
     
-        amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, token_out, public_key)
+        amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])
         await message.delete()
         text = f"""
-                Swapped {amount_in} of {token_in_symbol} for {amount_out} of {token_out_symbol}!
+                Swapped {order['amount_in']} of {order['token_in_symbol']} for {amount_out} of {order['token_out_symbol']}!
                 Tx hash: {tx_hash}
                 """
         await context.bot.send_message(
@@ -481,7 +458,7 @@ async def sell_tokens(update: Update, context: CallbackContext):
         await message.delete()
         text = f"""
                 Error: {e}
-                When Swapping {token_in_symbol} for {token_out_symbol}
+                When Swapping {order['token_in_symbol']} for {order['token_out_symbol']}
                 Tx Hash: {tx_hash}
                 """
         await context.bot.send_message(
