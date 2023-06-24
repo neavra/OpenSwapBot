@@ -85,19 +85,43 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def buy_tokens_options(update: Update, context: CallbackContext):
+    toggle_states = {
+        'toggle_0.001' : False,
+        'toggle_0.002' : False,
+    }
+    slippage_states= {
+        'slippage_10' : False,
+        'slippage_20' : False,
+        'slippage_30' : False,
+    }
+    global sell_or_buy
+    sell_or_buy = 'Buy'
+    emoji ={
+        'toggle_0.001' : '',
+        'toggle_0.002' : '',
+        'slippage_10' : '',
+        'slippage_20' : '',
+        'slippage_30' : '',
+    
+    }
+    
+    context.user_data["toggle_states"] = toggle_states
+    context.user_data["slippage_states"] = slippage_states
+    context.user_data["emoji"] = emoji
     keyboard = [
-        [InlineKeyboardButton("Buy Amount", callback_data="")],
+        [InlineKeyboardButton(f"{sell_or_buy} Amount", callback_data="empty")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
+            InlineKeyboardButton("0.001", callback_data="toggle_0.001"),
+            InlineKeyboardButton("0.002", callback_data="toggle_0.002"),
         ],
-        [InlineKeyboardButton("Slippage", callback_data="")],
+        [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-            InlineKeyboardButton("Option 3", callback_data="3"),
+            InlineKeyboardButton("10%", callback_data="slippage_10"),
+            InlineKeyboardButton("20%", callback_data="slippage_20"),
+            InlineKeyboardButton("30%", callback_data="slippage_30"),
 
         ],
+        [InlineKeyboardButton("Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
@@ -107,7 +131,7 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Please enter a contract address"
+        text=f"Please enter the token you would like to {sell_or_buy}"
     )
     return BUY_TOKENS_CONFIRMATION
 
@@ -118,15 +142,39 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     address = server.firebase_utils.get_user_address(user_id)
     public_key = address[0]
     private_key = address[1]
+    toggle_states = context.user_data["toggle_states"]
+    slippage_states = context.user_data["slippage_states"]
+    amount_in = 0
+    slippage = 0
 
-    context.user_data['amount_in'] = 0.0001
+    for key, value in toggle_states.items():
+        if value == True:
+            amount_in = float(key[-5:])
+    for key, value in slippage_states.items():
+        if value == True:
+            slippage = int(key[-2:])
+
+    if amount_in <= 0 or (slippage <= 0 or slippage>=100):
+        keyboard = [
+            [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"Please select an amount and slippage",
+        reply_markup= reply_markup
+        )
+        return ROUTE
+
+    context.user_data['amount_in'] = amount_in
+    context.user_data['slipapge'] = slippage
     context.user_data['token_in'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
     context.user_data['token_out'] = token_out
     context.user_data['public_key'] = public_key
     context.user_data['private_key'] = private_key
 
     amount_in = context.user_data['amount_in']
-    amount_in = 0.0001
     token_in = context.user_data['token_in']
     token_out = context.user_data['token_out']
 
@@ -248,7 +296,8 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
         'slippage_20' : False,
         'slippage_30' : False,
     }
-
+    global sell_or_buy
+    sell_or_buy = 'Sell'
     emoji ={
         'toggle_0.001' : '',
         'toggle_0.002' : '',
@@ -262,18 +311,19 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     context.user_data["slippage_states"] = slippage_states
     context.user_data["emoji"] = emoji
     keyboard = [
-        [InlineKeyboardButton("sell Amount", callback_data="start")],
+        [InlineKeyboardButton(f"{sell_or_buy} Amount", callback_data="empty")],
         [
             InlineKeyboardButton("0.001", callback_data="toggle_0.001"),
             InlineKeyboardButton("0.002", callback_data="toggle_0.002"),
         ],
-        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
             InlineKeyboardButton("10%", callback_data="slippage_10"),
             InlineKeyboardButton("20%", callback_data="slippage_20"),
             InlineKeyboardButton("30%", callback_data="slippage_30"),
 
         ],
+        [InlineKeyboardButton("Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
@@ -283,7 +333,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Please enter the token you would like to sell"
+        text=f"Please enter the token you would like to {sell_or_buy}"
     )
     return SELL_TOKENS_CONFIRMATION
 
@@ -296,13 +346,17 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     private_key = address[1]
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
+    amount_in = 0
+    slippage = 0
 
     for key, value in toggle_states.items():
         if value == True:
             amount_in = float(key[-5:])
-
-    #checks if an amount was selected
-    if all(value is False for value in toggle_states.values()) or all(value is False for value in slippage_states.values()):
+    for key, value in slippage_states.items():
+        if value == True:
+            slippage = int(key[-2:])
+    
+    if amount_in <= 0 or (slippage <= 0 or slippage>=100):
         keyboard = [
             [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
         ]
@@ -315,9 +369,10 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         )
         return ROUTE
 
-
-            
+        
+    
     context.user_data['amount_in'] = amount_in
+    context.user_data['slippage_in'] = slippage
     context.user_data['token_in'] = token_in
     context.user_data['token_out'] = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH
     context.user_data['public_key'] = public_key
@@ -442,6 +497,7 @@ async def toggle(update: Update, context: CallbackContext):
     await query.answer()
     callback_data = query.data
     category = callback_data[:3]
+    global sell_or_buy
 
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
@@ -466,18 +522,19 @@ async def toggle(update: Update, context: CallbackContext):
     emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
     emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
     keyboard = [
-        [InlineKeyboardButton("Sell Amount", callback_data="start")],
+        [InlineKeyboardButton(f"{sell_or_buy} Amount", callback_data="empty")],
         [
             InlineKeyboardButton(f'0.001 {emoji["toggle_0.001"]}', callback_data="toggle_0.001"),
             InlineKeyboardButton(f'0.002 {emoji["toggle_0.002"]}', callback_data="toggle_0.002"),
         ],
-        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
             InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
             InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
             InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
 
         ],
+        [InlineKeyboardButton("Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
@@ -500,9 +557,19 @@ def main():
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
             },
-            BUY_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, buy_tokens_confirmation)],
+            BUY_TOKENS_CONFIRMATION: {
+                MessageHandler(filters.TEXT, buy_tokens_confirmation),
+                CallbackQueryHandler(start, pattern = "^start$"),
+                CallbackQueryHandler(toggle, pattern="^toggle_0.001$"),
+                CallbackQueryHandler(toggle, pattern="^toggle_0.002$"),
+                CallbackQueryHandler(toggle, pattern="^slippage_10$"),
+                CallbackQueryHandler(toggle, pattern="^slippage_20$"),
+                CallbackQueryHandler(toggle, pattern="^slippage_30$"),
+                },
+
             SELL_TOKENS_CONFIRMATION: {
                 MessageHandler(filters.TEXT, sell_tokens_confirmation),
+                CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(toggle, pattern="^toggle_0.001$"),
                 CallbackQueryHandler(toggle, pattern="^toggle_0.002$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_10$"),
