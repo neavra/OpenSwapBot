@@ -269,9 +269,9 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
-            InlineKeyboardButton("1", callback_data="slippage_10"),
-            InlineKeyboardButton("2", callback_data="slippage_20"),
-            InlineKeyboardButton("3", callback_data="slippage_30"),
+            InlineKeyboardButton("10%", callback_data="slippage_10"),
+            InlineKeyboardButton("20%", callback_data="slippage_20"),
+            InlineKeyboardButton("30%", callback_data="slippage_30"),
 
         ],
     ]
