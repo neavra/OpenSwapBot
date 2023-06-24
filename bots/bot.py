@@ -44,7 +44,7 @@ async def start(update: Update, context: CallbackContext):
         address = server.firebase_utils.get_user_address(user_id)
 
     public_key = address[0]
-    balance = blockchain.web3_utils.get_balance(public_key)
+    balance = blockchain.web3_utils.get_eth_balance(public_key)
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
@@ -184,6 +184,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_in_symbol'] = token_in_symbol
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
+    
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
