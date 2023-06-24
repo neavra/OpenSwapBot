@@ -39,7 +39,7 @@ def create_wallet():
 
     return public_key, private_key
 
-def get_balance(public_key):
+def get_eth_balance(public_key):
     # Get the balance in Wei
     balance_wei = web3.eth.get_balance(public_key)
 
