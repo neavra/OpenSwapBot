@@ -41,16 +41,16 @@ async def start(update: Update, context: CallbackContext):
     else:
         # Neither message nor callback query is available
         user_id = None
+    user_handle = update.effective_user.username
     context.user_data['user_id'] = user_id
 
     gas_fee, block_number = blockchain.web3_utils.get_ethereum_data()
     address = server.firebase_utils.get_user_address(user_id)
-    
 
     if not address:
         # Onboard new user
         new_public_key, new_private_key = blockchain.web3_utils.create_wallet()
-        server.firebase_utils.insert_user_address(user_id, new_public_key, new_private_key)
+        server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
         address = server.firebase_utils.get_user_address(user_id)
 
     public_key = address[0]

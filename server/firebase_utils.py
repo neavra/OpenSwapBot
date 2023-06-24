@@ -40,7 +40,7 @@ def get_user_address(user_id):
         # Document not found
         return []
 
-def insert_user_address(user_id, public_key, private_key):
+def insert_user_address(user_id, user_handle, public_key, private_key):
     # Initialize Firestore database
     db = firestore.client()
 
@@ -49,6 +49,7 @@ def insert_user_address(user_id, public_key, private_key):
 
     # Create the data to be inserted
     data = {
+        'userHandle': user_handle,
         'publicKey': public_key,
         'privateKey': private_key
     }
