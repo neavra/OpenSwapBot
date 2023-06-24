@@ -44,7 +44,7 @@ async def start(update: Update, context: CallbackContext):
         address = server.firebase_utils.get_user_address(user_id)
 
     public_key = address[0]
-    balance = blockchain.web3_utils.get_balance(public_key)
+    balance = blockchain.web3_utils.get_eth_balance(public_key)
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
