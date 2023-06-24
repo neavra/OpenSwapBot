@@ -17,7 +17,7 @@ load_dotenv()
 
 TELE_TOKEN = os.getenv("TELE_TOKEN")
 
-ROUTE, BUY_TOKENS_CONFIRMATION, BUY_TOKENS, SELL_TOKENS_CONFIRMATION = range(4)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION = range(3)
 # Function to handle the /start command
 async def start(update: Update, context: CallbackContext):
     if update.message:
@@ -74,7 +74,7 @@ async def start(update: Update, context: CallbackContext):
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
+            [InlineKeyboardButton("< Back", callback_data="start")]
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -86,12 +86,12 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def buy_tokens_options(update: Update, context: CallbackContext):
     keyboard = [
-        [InlineKeyboardButton("Buy Amount", callback_data="start")],
+        [InlineKeyboardButton("Buy Amount", callback_data="")],
         [
             InlineKeyboardButton("Option 1", callback_data="1"),
             InlineKeyboardButton("Option 2", callback_data="2"),
         ],
-        [InlineKeyboardButton("Slippage", callback_data="start")],
+        [InlineKeyboardButton("Slippage", callback_data="")],
         [
             InlineKeyboardButton("Option 1", callback_data="1"),
             InlineKeyboardButton("Option 2", callback_data="2"),
@@ -112,8 +112,6 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     return BUY_TOKENS_CONFIRMATION
 
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
-    # To be refactored into options menu
-    ##########################################################################################################################################################
     user_id = context.user_data.get('user_id')
     token_out = update.message.text
 
@@ -139,33 +137,17 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_in_symbol'] = token_in_symbol
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
-
-    validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
-
-    # if validation_result:
-    #     keyboard = [
-    #         [InlineKeyboardButton("Go back", callback_data="start")]
-    #     ]
-    #     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    #     await context.bot.send_message(
-    #     chat_id=update.effective_chat.id,
-    #     text =f"{str(validation_result)}",
-    #     reply_markup= reply_markup
-    #     )
-    #     return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
 
     context.user_data['path_bytes'] = path_bytes
-    ##########################################################################################################################################################
 
     try:
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
         keyboard = [
-            [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
+            [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("< Back", callback_data="start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -184,7 +166,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
     except Exception as e:
         keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
+            [InlineKeyboardButton("< Back", callback_data="start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -213,7 +195,7 @@ async def buy_tokens(update: Update, context: CallbackContext):
     message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
 
     keyboard = [
-        [InlineKeyboardButton("Back", callback_data="start")]
+        [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -276,7 +258,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     
     }
     
-    context.user_data["toggle_states"] = toggle_states # Save the toggle states in the context object
+    context.user_data["toggle_states"] = toggle_states
     context.user_data["slippage_states"] = slippage_states
     context.user_data["emoji"] = emoji
     keyboard = [
@@ -318,10 +300,11 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     for key, value in toggle_states.items():
         if value == True:
             amount_in = float(key[-5:])
+
     #checks if an amount was selected
     if all(value is False for value in toggle_states.values()) or all(value is False for value in slippage_states.values()):
         keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="sell_tokens_options")]
+            [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -352,20 +335,6 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     context.user_data['token_out_symbol'] = token_out_symbol
     context.user_data['fees'] = fees
 
-    # validation_result = blockchain.web3_utils.validate_params(token_in, token_out, public_key, amount_in)
-
-    # if validation_result:
-    #     keyboard = [
-    #         [InlineKeyboardButton("Go back", callback_data="start")]
-    #     ]
-    #     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    #     await context.bot.send_message(
-    #     chat_id=update.effective_chat.id,
-    #     text =f"{str(validation_result)}",
-    #     reply_markup= reply_markup
-    #     )
-    #     return ROUTE
     
     path = [token_in, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, fees, True)
@@ -424,7 +393,7 @@ async def sell_tokens(update: Update, context: CallbackContext):
     message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
 
     keyboard = [
-        [InlineKeyboardButton("Back", callback_data="start")]
+        [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -497,16 +466,16 @@ async def toggle(update: Update, context: CallbackContext):
     emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
     emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
     keyboard = [
-        [InlineKeyboardButton("sell Amount", callback_data="start")],
+        [InlineKeyboardButton("Sell Amount", callback_data="start")],
         [
             InlineKeyboardButton(f'0.001 {emoji["toggle_0.001"]}', callback_data="toggle_0.001"),
             InlineKeyboardButton(f'0.002 {emoji["toggle_0.002"]}', callback_data="toggle_0.002"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="start")],
         [
-            InlineKeyboardButton(f'1 {emoji["slippage_10"]}', callback_data="slippage_10"),
-            InlineKeyboardButton(f'2 {emoji["slippage_20"]}', callback_data="slippage_20"),
-            InlineKeyboardButton(f'3 {emoji["slippage_30"]}', callback_data="slippage_30"),
+            InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
+            InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
+            InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
 
         ],
     ]
@@ -515,7 +484,6 @@ async def toggle(update: Update, context: CallbackContext):
         text = "Please choose:", 
         reply_markup=reply_markup)
     return SELL_TOKENS_CONFIRMATION
-
 
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
@@ -529,12 +497,9 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
-                CallbackQueryHandler(buy_tokens_confirmation, pattern="^buy_tokens_confirmation$"),
-                CallbackQueryHandler(sell_tokens_confirmation, pattern="^sell_tokens_confirmation$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
             },
-            BUY_TOKENS: [MessageHandler(filters.TEXT, buy_tokens)],
             BUY_TOKENS_CONFIRMATION: [MessageHandler(filters.TEXT, buy_tokens_confirmation)],
             SELL_TOKENS_CONFIRMATION: {
                 MessageHandler(filters.TEXT, sell_tokens_confirmation),
