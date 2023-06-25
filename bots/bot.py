@@ -130,7 +130,7 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
             InlineKeyboardButton("30%", callback_data="slippage_30"),
 
         ],
-        [InlineKeyboardButton("Back", callback_data="start")]
+        [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
@@ -318,7 +318,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
             InlineKeyboardButton("30%", callback_data="slippage_30"),
 
         ],
-        [InlineKeyboardButton("Back", callback_data="start")]
+        [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
@@ -512,7 +512,7 @@ async def toggle(update: Update, context: CallbackContext):
             InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
 
         ],
-        [InlineKeyboardButton("Back", callback_data="start")]
+        [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
