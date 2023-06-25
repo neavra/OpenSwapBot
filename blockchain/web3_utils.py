@@ -61,8 +61,13 @@ def get_symbol(token_address):
         return 'ETH'
     return symbol
 
-def get_balanceOf(public_key):
-    contract = web3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
+def get_decimal(token_address):
+    contract = web3.eth.contract(address=token_address, abi=ERC20_ABI)
+    decimal = contract.functions.decimals().call()
+    return decimal
+
+def get_balanceOf(address, public_key):
+    contract = web3.eth.contract(address=address, abi=WETH_ABI)
 
     balance = contract.functions.balanceOf(public_key).call()
     balance_in_ether = web3.from_wei(balance, 'ether')
@@ -251,7 +256,7 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
         # Check the transaction status
         if receipt['status']:
             if token_out == WETH_ADDRESS:
-                amount = get_balanceOf(public_key)
+                amount = get_balanceOf(WETH_ADDRESS, public_key)
                 unwrap_tx_hash = unwrap_eth(amount, public_key,private_key)
                 print(f'Unwrap Succesful! {unwrap_tx_hash}')
             print(f'Swap successful! {tx_hash}')

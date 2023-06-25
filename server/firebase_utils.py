@@ -57,6 +57,25 @@ def insert_user_address(user_id, user_handle, public_key, private_key):
     # Insert the data into the document
     doc_ref.set(data)
 
+def get_tokens():
+    # Access the Firestore database
+    db = firestore.client()
+
+    # Collection name
+    collection_name = "tokens"
+
+    # Get all documents in the collection
+    doc_ref = db.collection(collection_name)
+    doc_snapshot = doc_ref.get()
+
+    # Check if there are any documents in the collection
+    if len(doc_snapshot) > 0:        # Retrieve data from all documents
+        tokens = [doc.to_dict() for doc in doc_snapshot]
+        return tokens
+    else:
+        # Collection is empty
+        return []
+
 def get_token(symbol):
     # Access the Firestore database
     db = firestore.client()

@@ -28,6 +28,7 @@ TELE_TOKEN = os.getenv("TELE_TOKEN")
 ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION = range(3)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
+
 # Function to handle the /start command
 async def start(update: Update, context: CallbackContext):
     if update.message:
@@ -54,11 +55,20 @@ async def start(update: Update, context: CallbackContext):
         address = server.firebase_utils.get_user_address(user_id)
 
     public_key = address[0]
+    context.user_data['public_key'] = public_key
+
     balance = blockchain.web3_utils.get_eth_balance(public_key)
     transaction = blockchain.web3_utils.get_nonce(public_key)
 
     keyboard = [
-        [InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options")]
+        [
+            InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),
+            InlineKeyboardButton("Sell Tokens", callback_data="sell_tokens_options"),
+        ],
+        [
+            InlineKeyboardButton("View Token Balances", callback_data="view_token_balances"),
+            InlineKeyboardButton("List of Popular Tokens", callback_data="list_popular_tokens"),
+        ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -80,6 +90,49 @@ async def start(update: Update, context: CallbackContext):
                 parse_mode="markdown", 
                 reply_markup=reply_markup
             )
+    return ROUTE
+
+async def view_token_balances(update: Update, context: CallbackContext):
+    tokens = server.firebase_utils.get_tokens()
+    text = "These are your balances:\n"
+    public_key = context.user_data['public_key']
+    for token in tokens:
+        symbol = token["symbol"]
+        balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
+        if balance != 0:
+            text += f'Symbol: {symbol}\nBalance: {round(balance,5)}\n'
+
+    keyboard = [
+            [InlineKeyboardButton("< Back", callback_data="start")]
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup= reply_markup
+    )
+    return ROUTE
+
+async def list_popular_tokens(update: Update, context: CallbackContext):
+    tokens = server.firebase_utils.get_tokens()
+    text = "These are the tokens:\n"
+
+    for token in tokens:
+        symbol = token["symbol"]
+        address = token["address"]
+        text += f'Symbol: {symbol}\nAddress: {address}\n'
+
+    keyboard = [
+            [InlineKeyboardButton("< Back", callback_data="start")]
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup= reply_markup
+    )
     return ROUTE
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -541,9 +594,9 @@ async def validate_token_input(token_input):
     # Deals with both Symbol and Contract case
     try:
         if isinstance(token_input, str) and token_input.startswith("0x") and len(token_input) == 42:
-            logger.info("This is a contract address")
             symbol = blockchain.web3_utils.get_symbol(token_input)
-            server.firebase_utils.insert_token(symbol, token_input, 18, 'Goerli')
+            decimal = blockchain.web3_utils.get_decimal(token_input)
+            server.firebase_utils.insert_token(symbol, token_input, decimal, 'Goerli')
             return [token_input, symbol]
         else:
             token_input = token_input.upper()
@@ -567,6 +620,8 @@ def main():
             ROUTE: {
                 CommandHandler('start', start),
                 CallbackQueryHandler(start, pattern = "^start$"),
+                CallbackQueryHandler(view_token_balances, pattern = "^view_token_balances$"),
+                CallbackQueryHandler(list_popular_tokens, pattern = "^list_popular_tokens$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
