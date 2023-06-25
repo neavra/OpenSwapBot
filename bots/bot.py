@@ -328,7 +328,7 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"Please enter the token you would like to sell"
+        text=f"Please enter the token you would like to sell, you can enter a symbol i.e. BTC or the contract address"
     )
     return SELL_TOKENS_CONFIRMATION
 
@@ -565,6 +565,7 @@ def main():
         ],
         states= {
             ROUTE: {
+                CommandHandler('start', start),
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
@@ -572,6 +573,7 @@ def main():
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
             },
             BUY_TOKENS_CONFIRMATION: {
+                CommandHandler('start', start),
                 MessageHandler(filters.TEXT, buy_tokens_confirmation),
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(toggle, pattern="^toggle_0.001$"),
@@ -582,6 +584,7 @@ def main():
                 },
 
             SELL_TOKENS_CONFIRMATION: {
+                CommandHandler('start', start),
                 MessageHandler(filters.TEXT, sell_tokens_confirmation),
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(toggle, pattern="^toggle_0.001$"),
