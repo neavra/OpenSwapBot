@@ -140,7 +140,7 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"Please enter the token you would like to buy"
+        text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
     )
     return BUY_TOKENS_CONFIRMATION
 
@@ -149,19 +149,12 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     token_out = update.message.text
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
-    amount_in = 0
-    slippage = 0
+    
+    [amount_in, slippage] = await validate_options_input(toggle_states, slippage_states)
 
-    for key, value in toggle_states.items():
-        if value == True:
-            amount_in = float(key[-5:])
-    for key, value in slippage_states.items():
-        if value == True:
-            slippage = int(key[-2:])
-
-    if amount_in <= 0 or (slippage <= 0 or slippage>=100):
+    if  amount_in == 0 or slippage == 0:
         keyboard = [
-            [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
+            [InlineKeyboardButton("< Back", callback_data="buy_tokens_options")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -171,10 +164,19 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         reply_markup= reply_markup
         )
         return ROUTE
+    
+    [token_out, token_out_symbol] = await validate_token_input(token_out)
+
+    if token_out == "":
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"Could not identify the token, please input the token contract",
+        )
+        return BUY_TOKENS_CONFIRMATION
+    
     address = server.firebase_utils.get_user_address(user_id)
 
     token_in_symbol = blockchain.web3_utils.get_symbol(WETH_ADDRESS)
-    token_out_symbol = blockchain.web3_utils.get_symbol(token_out)
     
     path = [WETH_ADDRESS, token_out]
     path_bytes = blockchain.web3_utils.encode_path(path, FEES, True)
@@ -520,6 +522,38 @@ async def toggle(update: Update, context: CallbackContext):
         return SELL_TOKENS_CONFIRMATION
     else:
         return BUY_TOKENS_CONFIRMATION
+
+async def validate_options_input(toggle_states, slippage_states):
+    amount_in = 0
+    slippage = 0
+    for key, value in toggle_states.items():
+        if value == True:
+            amount_in = float(key[-5:])
+    for key, value in slippage_states.items():
+        if value == True:
+            slippage = int(key[-2:])
+
+    if amount_in <= 0 or (slippage <= 0 or slippage>=100):
+        return [0,0]
+    return [amount_in, slippage]
+
+async def validate_token_input(token_input):
+    # Deals with both Symbol and Contract case
+    try:
+        if isinstance(token_input, str) and token_input.startswith("0x") and len(token_input) == 42:
+            logger.info("This is a contract address")
+            symbol = blockchain.web3_utils.get_symbol(token_input)
+            server.firebase_utils.insert_token(symbol, token_input, 18, 'Goerli')
+            return [token_input, symbol]
+        else:
+            token = server.firebase_utils.get_token(token_input)
+            if not token: # If token object is not found
+                return ["",""]
+            return [token["address"],token["symbol"]] # Return the contract address
+    except Exception as e:
+        logger.info(f"Error when validating token_input: {e}")
+        return ""
+
 
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()

@@ -56,3 +56,41 @@ def insert_user_address(user_id, user_handle, public_key, private_key):
 
     # Insert the data into the document
     doc_ref.set(data)
+
+def get_token(symbol):
+    # Access the Firestore database
+    db = firestore.client()
+
+    # Collection name
+    collection_name = "tokens"
+    # Get the document for the specified chat_id
+    doc_ref = db.collection(collection_name).where("symbol", "==", symbol)
+    doc_snapshot = doc_ref.get()
+
+    # Check if the document exists
+    if doc_snapshot != []:
+        # Get the data from the document
+        data = doc_snapshot[0].to_dict()
+        return data
+
+    else:
+        # Document not found
+        return None
+
+def insert_token(symbol, address, decimal, chain):
+    # Initialize Firestore database
+    db = firestore.client()
+
+    # Define the document reference using the user ID
+    doc_ref = db.collection('tokens').document(str(symbol)+"_"+chain)
+
+    # Create the data to be inserted
+    data = {
+        'symbol': symbol,
+        'address': address,
+        'decimal': decimal,
+        'chain': chain,
+    }
+
+    # Insert the data into the document
+    doc_ref.set(data)
