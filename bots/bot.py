@@ -101,6 +101,9 @@ async def view_token_balances(update: Update, context: CallbackContext):
         balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
         if balance != 0:
             text += f'Symbol: {symbol}\nBalance: {round(balance,5)}\n'
+    # Handle no balances case
+    if text == "These are your balances:\n":
+        text = "You have no Available Balances!"
 
     keyboard = [
             [InlineKeyboardButton("< Back", callback_data="start")]
