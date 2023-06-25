@@ -337,19 +337,12 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     token_in = update.message.text
     toggle_states = context.user_data["toggle_states"]
     slippage_states = context.user_data["slippage_states"]
-    amount_in = 0
-    slippage = 0
 
-    for key, value in toggle_states.items():
-        if value == True:
-            amount_in = float(key[-5:])
-    for key, value in slippage_states.items():
-        if value == True:
-            slippage = int(key[-2:])
-    
-    if amount_in <= 0 or (slippage <= 0 or slippage>=100):
+    [amount_in, slippage] = await validate_options_input(toggle_states, slippage_states)
+
+    if  amount_in == 0 or slippage == 0:
         keyboard = [
-            [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
+            [InlineKeyboardButton("< Back", callback_data="buy_tokens_options")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -359,10 +352,18 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         reply_markup= reply_markup
         )
         return ROUTE
-  
+
+    [token_in, token_in_symbol] = await validate_token_input(token_in)
+
+    if token_in == "":
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text =f"Could not identify the token, please input the token contract",
+        )
+        return BUY_TOKENS_CONFIRMATION
+    
     address = server.firebase_utils.get_user_address(user_id)
 
-    token_in_symbol = blockchain.web3_utils.get_symbol(token_in)
     token_out_symbol = blockchain.web3_utils.get_symbol(WETH_ADDRESS)
     
     path = [token_in, WETH_ADDRESS]
@@ -461,7 +462,6 @@ async def sell_tokens(update: Update, context: CallbackContext):
         text = f"""
                 Error: {e}
                 When Swapping {order['token_in_symbol']} for {order['token_out_symbol']}
-                Tx Hash: {tx_hash}
                 """
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -546,6 +546,7 @@ async def validate_token_input(token_input):
             server.firebase_utils.insert_token(symbol, token_input, 18, 'Goerli')
             return [token_input, symbol]
         else:
+            token_input = token_input.upper()
             token = server.firebase_utils.get_token(token_input)
             if not token: # If token object is not found
                 return ["",""]
