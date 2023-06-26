@@ -606,23 +606,11 @@ async def toggle(update: Update, context: CallbackContext):
         return BUY_TOKENS_CONFIRMATION
 
 async def custom_amount(update: Update, context: CallbackContext):
-
-    query= update.callback_query 
-    await query.answer()
-    callback_data = query.data
-    category = callback_data[:3]
+    custom_amount = update.message.text
 
     side = context.user_data["side"]
     keyboard_message = context.bot_data["keyboard_message"]
     slippage_states = context.user_data["slippage_states"]
-    emoji = context.user_data["emoji"]
-
-    if category == 'sli':
-        slippage_states[callback_data] = not slippage_states[callback_data]
-        if slippage_states[callback_data]:
-            for key, value in slippage_states.items():
-                if value and key != callback_data:
-                    slippage_states[key] = False
 
     keyboard = [
         [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
