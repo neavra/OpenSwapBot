@@ -266,6 +266,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         message = f"""
         Please confirm your order:
         Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+        Slippage: {slippage}
         """
 
         await context.bot.send_message(
@@ -454,6 +455,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         message = f"""
         Please confirm your order:
         Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+        Slippage: {slippage}
         """
 
         await context.bot.send_message(
