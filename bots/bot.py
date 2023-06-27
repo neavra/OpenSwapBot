@@ -221,7 +221,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text =f"Please select an amount and slippage",
+        text =f"Please select both amount and slippage",
         reply_markup= reply_markup
         )
         return ROUTE
@@ -582,9 +582,8 @@ async def toggle(update: Update, context: CallbackContext):
     # Deals with the case where cusstom amount is selected
     logger.info(callback_data)
     request_message = context.bot_data['request_message']
-    if callback_data == "amount_custom" and request_message:
+    if callback_data == "amount_custom":
         await request_message.delete()
-        context.bot_data['request_message'] = False
 
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -610,7 +609,9 @@ async def custom_amount(update: Update, context: CallbackContext):
 
     side = context.user_data["side"]
     keyboard_message = context.bot_data["keyboard_message"]
-    slippage_states = context.user_data["slippage_states"]
+    amount_states = context.user_data["amount_states"]
+    del amount_states['amount_custom']
+    amount_states[f'amount_{custom_amount}'] = True
 
     keyboard = [
         [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
@@ -651,10 +652,15 @@ async def validate_options_input(amount_states, slippage_states):
     try:
         for key, value in amount_states.items():
             if value == True:
-                amount_in = float(key[-5:])
+                amount_in = float(key[7:])
         for key, value in slippage_states.items():
             if value == True:
-                slippage = int(key[-2:])
+                slippage = float(key[-2:])
+
+        if amount_in == 0:
+            raise ValueError("Amount is not selected")
+        if slippage == 0:
+            raise ValueError("Slippage is not selected")
     except Exception as e:
         logger.info(f'Error when validating options input: {e}')
         return [0,0]
