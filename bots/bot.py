@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 TELE_TOKEN = os.getenv("TELE_TOKEN")
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT = range(4)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, CUSTOM_AMOUNT_TOKEN = range(5)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -600,13 +600,27 @@ async def toggle(update: Update, context: CallbackContext):
         return BUY_TOKENS_CONFIRMATION
 
 async def custom_amount(update: Update, context: CallbackContext):
-    custom_amount = update.message.text
-
     side = context.user_data["side"]
     keyboard_message = context.bot_data["keyboard_message"]
     amount_states = context.user_data["amount_states"]
-    del amount_states['amount_custom']
-    amount_states[f'amount_{custom_amount}'] = True
+    slippage_states = context.user_data["slippage_states"]
+    emoji = context.user_data["emoji"]
+
+    # if update.message:
+    #     logger.info("This is the update.,essage block")
+    #     custom_amount = update.message.text
+    #     await context.bot.send_message( # This sends the prompt for a token address
+    #         chat_id=update.effective_chat.id,
+    #         text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
+    #     )
+    #     return CUSTOM_AMOUNT
+    if update.callback_query:
+        custom_amount = "--"
+        query = update.callback_query
+        await query.answer()
+        callback_data = query.data
+        emoji = await emote(callback_data, emoji, slippage_states)
+        context.user_data["emoji"] = emoji
 
     keyboard = [
         [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
@@ -617,9 +631,9 @@ async def custom_amount(update: Update, context: CallbackContext):
         ],
         [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
-            InlineKeyboardButton(f'10%', callback_data="slippage_10"),
-            InlineKeyboardButton(f'20%', callback_data="slippage_20"),
-            InlineKeyboardButton(f'30%', callback_data="slippage_30"),
+            InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
+            InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
+            InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
@@ -630,17 +644,30 @@ async def custom_amount(update: Update, context: CallbackContext):
         text = "Please choose:", 
         reply_markup=reply_markup
     )
+    
+    return CUSTOM_AMOUNT_TOKEN
+    # if side == "Sell":
+    #     return SELL_TOKENS_CONFIRMATION
+    # else:
+    #     return BUY_TOKENS_CONFIRMATION
+
+async def custom_amount_token(update: Update, context: CallbackContext):
+    side = context.user_data['side']
+    amount_states = context.user_data['amount_states']
+    custom_amount = update.message.text
+    del amount_states['amount_custom']
+    amount_states[f'amount_{custom_amount}'] = True
 
     await context.bot.send_message( # This sends the prompt for a token address
         chat_id=update.effective_chat.id,
         text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
     )
- 
+
     if side == "Sell":
         return SELL_TOKENS_CONFIRMATION
     else:
         return BUY_TOKENS_CONFIRMATION
-
+    
 async def validate_options_input(amount_states, slippage_states):
     amount_in = 0
     slippage = 0
@@ -724,6 +751,14 @@ def main():
             CUSTOM_AMOUNT: {
                 CommandHandler('start', start),
                 MessageHandler(filters.TEXT, custom_amount),
+                CallbackQueryHandler(custom_amount, pattern="^slippage_10$"),
+                CallbackQueryHandler(custom_amount, pattern="^slippage_20$"),
+                CallbackQueryHandler(custom_amount, pattern="^slippage_30$"),
+            },
+            CUSTOM_AMOUNT_TOKEN: {
+                CommandHandler('start', start),
+                MessageHandler(filters.TEXT, custom_amount_token),
+
             }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
