@@ -161,20 +161,18 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
         'slippage_20' : False,
         'slippage_30' : False,
     }
-    emoji ={
+    emoji = {
         'amount_0.001' : '',
         'amount_0.002' : '',
-        'amount_custom' : '',
-        'slippage_10' : '',
-        'slippage_20' : '',
-        'slippage_30' : '',
-    
+        'amount_custom': '',
+        'slippage_10' :  '',
+        'slippage_20' :  '',
+        'slippage_30' :  '',
     }
-    
     context.user_data["amount_states"] = amount_states
     context.user_data["slippage_states"] = slippage_states
-    context.user_data["side"] = "Buy"
     context.user_data["emoji"] = emoji
+    context.user_data["side"] = "Buy"
     keyboard = [
         [InlineKeyboardButton(f"Buy Amount", callback_data="empty")],
         [
@@ -227,7 +225,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         return ROUTE
     
     [token_out, token_out_symbol] = await validate_token_input(token_out)
-
+    
     if token_out == "":
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -256,7 +254,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         'path_bytes': path_bytes,
     }
     context.user_data['order'] = order
-
+    
     try:
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
@@ -531,36 +529,34 @@ async def sell_tokens(update: Update, context: CallbackContext):
         )
         return ROUTE
 
+async def emote(callback_data, emoji, states):
+    for key, value in states.items():
+        if key == callback_data:
+            value = not value
+            states[key] = value
+        else:
+            states[key] = False 
+    
+    for key,value in states.items():
+        emoji[key] = '\u2705' if value else ''
+    return emoji
+
 async def toggle(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
     callback_data = query.data
-    category = callback_data[:3]
 
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
     side = context.user_data["side"]
     emoji = context.user_data["emoji"]
-    if category == 'amo':
-        # Prevent mulitple selection of the same category and toggles switch
-        amount_states[callback_data] = not amount_states[callback_data]
-        if amount_states[callback_data]:
-            for key, value in amount_states.items():
-                if value and key != callback_data:
-                    amount_states[key] = False   
-    elif category == 'sli':
-        slippage_states[callback_data] = not slippage_states[callback_data]
-        if slippage_states[callback_data]:
-            for key, value in slippage_states.items():
-                if value and key != callback_data:
-                    slippage_states[key] = False
-    
-    emoji["amount_0.001"] = '\u2705' if amount_states["amount_0.001"] else ''
-    emoji["amount_0.002"] = '\u2705' if amount_states["amount_0.002"] else ''
-    emoji["amount_custom"] = '\u2705' if amount_states["amount_custom"] else ''
-    emoji["slippage_10"] = '\u2705' if slippage_states["slippage_10"] else ''
-    emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
-    emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
+
+    if 'amount' in callback_data:
+        emoji = await emote(callback_data, emoji, amount_states)
+    else:    
+        emoji = await emote(callback_data, emoji, slippage_states)
+    context.user_data["emoji"] = emoji
+
     keyboard = [
         [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
         [
@@ -579,8 +575,7 @@ async def toggle(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Deals with the case where cusstom amount is selected
-    logger.info(callback_data)
+    # Deals with the case where custom amount is selected
     request_message = context.bot_data['request_message']
     if callback_data == "amount_custom":
         await request_message.delete()
