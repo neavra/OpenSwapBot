@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 TELE_TOKEN = os.getenv("TELE_TOKEN")
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION = range(3)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT = range(4)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -154,30 +154,31 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     amount_states = {
         'amount_0.001' : False,
         'amount_0.002' : False,
+        'amount_custom': False,
     }
     slippage_states= {
         'slippage_10' : False,
         'slippage_20' : False,
         'slippage_30' : False,
     }
-    emoji ={
+    emoji = {
         'amount_0.001' : '',
         'amount_0.002' : '',
-        'slippage_10' : '',
-        'slippage_20' : '',
-        'slippage_30' : '',
-    
+        'amount_custom': '',
+        'slippage_10' :  '',
+        'slippage_20' :  '',
+        'slippage_30' :  '',
     }
-    
     context.user_data["amount_states"] = amount_states
     context.user_data["slippage_states"] = slippage_states
-    context.user_data["side"] = "Buy"
     context.user_data["emoji"] = emoji
+    context.user_data["side"] = "Buy"
     keyboard = [
         [InlineKeyboardButton(f"Buy Amount", callback_data="empty")],
         [
             InlineKeyboardButton("0.001", callback_data="amount_0.001"),
             InlineKeyboardButton("0.002", callback_data="amount_0.002"),
+            InlineKeyboardButton("Custom: --", callback_data="amount_custom"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
@@ -189,15 +190,17 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    keyboard_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = "Please choose:", 
         reply_markup=reply_markup)
     
-    await context.bot.send_message(
+    request_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
     )
+    context.bot_data['request_message'] = request_message
+    context.bot_data['keyboard_message'] = keyboard_message
     return BUY_TOKENS_CONFIRMATION
 
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
@@ -205,7 +208,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     token_out = update.message.text
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
-    
+
     [amount_in, slippage] = await validate_options_input(amount_states, slippage_states)
 
     if  amount_in == 0 or slippage == 0:
@@ -216,13 +219,13 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text =f"Please select an amount and slippage",
+        text =f"Please select both amount and slippage",
         reply_markup= reply_markup
         )
         return ROUTE
     
     [token_out, token_out_symbol] = await validate_token_input(token_out)
-
+    
     if token_out == "":
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -251,7 +254,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         'path_bytes': path_bytes,
     }
     context.user_data['order'] = order
-
+    
     try:
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
@@ -263,6 +266,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         message = f"""
         Please confirm your order:
         Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+        Slippage: {slippage}
         """
 
         await context.bot.send_message(
@@ -451,6 +455,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         message = f"""
         Please confirm your order:
         Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
+        Slippage: {slippage}
         """
 
         await context.bot.send_message(
@@ -526,40 +531,41 @@ async def sell_tokens(update: Update, context: CallbackContext):
         )
         return ROUTE
 
+async def emote(callback_data, emoji, states):
+    for key, value in states.items():
+        if key == callback_data:
+            value = not value
+            states[key] = value
+        else:
+            states[key] = False 
+    
+    for key,value in states.items():
+        emoji[key] = '\u2705' if value else ''
+    return emoji
+
 async def toggle(update: Update, context: CallbackContext):
+    custom_amount = "--"
     query= update.callback_query 
     await query.answer()
     callback_data = query.data
-    category = callback_data[:3]
 
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
     side = context.user_data["side"]
     emoji = context.user_data["emoji"]
-    if category == 'tog':
-        # Prevent mulitple selection of the same category and toggles switch
-        amount_states[callback_data] = not amount_states[callback_data]
-        if amount_states[callback_data]:
-            for key, value in amount_states.items():
-                if value and key != callback_data:
-                    amount_states[key] = False   
-    elif category == 'sli':
-        slippage_states[callback_data] = not slippage_states[callback_data]
-        if slippage_states[callback_data]:
-            for key, value in slippage_states.items():
-                if value and key != callback_data:
-                    slippage_states[key] = False
-    
-    emoji["amount_0.001"] = '\u2705' if amount_states["amount_0.001"] else ''
-    emoji["amount_0.002"] = '\u2705' if amount_states["amount_0.002"] else ''
-    emoji["slippage_10"] = '\u2705' if slippage_states["slippage_10"] else ''
-    emoji["slippage_20"] = '\u2705' if slippage_states["slippage_20"] else ''
-    emoji["slippage_30"] = '\u2705' if slippage_states["slippage_30"] else ''
+
+    if 'amount' in callback_data:
+        emoji = await emote(callback_data, emoji, amount_states)
+    else:    
+        emoji = await emote(callback_data, emoji, slippage_states)
+    context.user_data["emoji"] = emoji
+
     keyboard = [
         [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
         [
             InlineKeyboardButton(f'0.001 {emoji["amount_0.001"]}', callback_data="amount_0.001"),
             InlineKeyboardButton(f'0.002 {emoji["amount_0.002"]}', callback_data="amount_0.002"),
+            InlineKeyboardButton(f'Custom: {custom_amount} {emoji["amount_custom"]}', callback_data="amount_custom"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
@@ -571,24 +577,102 @@ async def toggle(update: Update, context: CallbackContext):
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Deals with the case where custom amount is selected
+    request_message = context.bot_data['request_message']
+    if callback_data == "amount_custom":
+        await request_message.delete()
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Please input a custom amount"
+        )
+        await query.edit_message_text(
+            text = "Please choose:", 
+            reply_markup=reply_markup
+        )
+        return CUSTOM_AMOUNT
+
     await query.edit_message_text(
         text = "Please choose:", 
-        reply_markup=reply_markup)
+        reply_markup=reply_markup
+    )
     if side == "Sell":
         return SELL_TOKENS_CONFIRMATION
     else:
         return BUY_TOKENS_CONFIRMATION
 
+async def custom_amount(update: Update, context: CallbackContext):
+    side = context.user_data["side"]
+    keyboard_message = context.bot_data["keyboard_message"]
+    slippage_states = context.user_data["slippage_states"]
+    amount_states = context.user_data["amount_states"]
+    emoji = context.user_data["emoji"]
+
+    if update.callback_query:
+        custom_amount = "--"
+        query = update.callback_query
+        await query.answer()
+        callback_data = query.data
+        emoji = await emote(callback_data, emoji, slippage_states)
+        context.user_data["emoji"] = emoji
+    if update.message:
+        custom_amount = update.message.text
+        del amount_states['amount_custom']
+
+        amount_states[f'amount_{custom_amount}'] = True
+        await context.bot.send_message( # This sends the prompt for a token address
+            chat_id=update.effective_chat.id,
+            text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
+        )
+        if side == "Sell":
+            return SELL_TOKENS_CONFIRMATION
+        else:
+            return BUY_TOKENS_CONFIRMATION
+
+    keyboard = [
+        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
+        [
+            InlineKeyboardButton(f'0.001', callback_data="amount_0.001"),
+            InlineKeyboardButton(f'0.002', callback_data="amount_0.002"),
+            InlineKeyboardButton(f'Custom: {custom_amount} \u2705', callback_data="amount_custom"),
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="empty")],
+        [
+            InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
+            InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
+            InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
+
+        ],
+        [InlineKeyboardButton("< Back", callback_data="start")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await keyboard_message.edit_text( # This updates the keyboard
+        text = "Please choose:", 
+        reply_markup=reply_markup
+    )
+    
+    return CUSTOM_AMOUNT
+    
 async def validate_options_input(amount_states, slippage_states):
     amount_in = 0
     slippage = 0
-    for key, value in amount_states.items():
-        if value == True:
-            amount_in = float(key[-5:])
-    for key, value in slippage_states.items():
-        if value == True:
-            slippage = int(key[-2:])
+    try:
+        for key, value in amount_states.items():
+            if value == True:
+                amount_in = float(key[7:])
+        for key, value in slippage_states.items():
+            if value == True:
+                slippage = float(key[-2:])
 
+        if amount_in == 0:
+            raise ValueError("Amount is not selected")
+        if slippage == 0:
+            raise ValueError("Slippage is not selected")
+    except Exception as e:
+        logger.info(f'Error when validating options input: {e}')
+        return [0,0]
     if amount_in <= 0 or (slippage <= 0 or slippage>=100):
         return [0,0]
     return [amount_in, slippage]
@@ -636,11 +720,11 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(toggle, pattern="^amount_0.001$"),
                 CallbackQueryHandler(toggle, pattern="^amount_0.002$"),
+                CallbackQueryHandler(toggle, pattern="^amount_custom$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_10$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_20$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_30$"),
-                },
-
+            },
             SELL_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),
                 MessageHandler(filters.TEXT, sell_tokens_confirmation),
@@ -650,6 +734,13 @@ def main():
                 CallbackQueryHandler(toggle, pattern="^slippage_10$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_20$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_30$"),
+            },
+            CUSTOM_AMOUNT: {
+                CommandHandler('start', start),
+                MessageHandler(filters.TEXT, custom_amount),
+                CallbackQueryHandler(custom_amount, pattern="^slippage_10$"),
+                CallbackQueryHandler(custom_amount, pattern="^slippage_20$"),
+                CallbackQueryHandler(custom_amount, pattern="^slippage_30$"),
             },
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
