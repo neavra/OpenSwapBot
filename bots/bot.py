@@ -252,6 +252,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         'public_key': address[0],
         'private_key': address[1],
         'path_bytes': path_bytes,
+        'status': 'PENDING',
     }
     context.user_data['order'] = order
     
@@ -317,6 +318,8 @@ async def buy_tokens(update: Update, context: CallbackContext):
         tx_hash = receipt['transactionHash'].hex()
     
         amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])
+        order['status'] = 'SUCCESSFUL'
+        server.firebase_utils.insert_order(order)
         await message.delete()
         text = f"""
                 Swapped {order['amount_in']} of {order['token_in_symbol']} for {amount_out} of {order['token_out_symbol']}!
@@ -330,6 +333,9 @@ async def buy_tokens(update: Update, context: CallbackContext):
         return ROUTE
 
     except Exception as e:
+        order['status'] = 'UNSUCCESSFUL'
+        server.firebase_utils.insert_order(order)
+
         await message.delete()
         text = f"""
                 Error: {e}
@@ -441,6 +447,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         'public_key': address[0],
         'private_key': address[1],
         'path_bytes': path_bytes,
+        'status': 'PENDING'
     }
     context.user_data['order'] = order
 
@@ -506,6 +513,9 @@ async def sell_tokens(update: Update, context: CallbackContext):
         tx_hash = receipt['transactionHash'].hex()
     
         amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])
+        order['status'] = 'SUCCESSFUL'
+        server.firebase_utils.insert_order(order)
+
         await message.delete()
         text = f"""
                 Swapped {order['amount_in']} of {order['token_in_symbol']} for {amount_out} of {order['token_out_symbol']}!
@@ -519,6 +529,10 @@ async def sell_tokens(update: Update, context: CallbackContext):
         return ROUTE
 
     except Exception as e:
+        order['status'] = 'UNSUCCESSFUL'
+        server.firebase_utils.insert_order(order)
+
+
         await message.delete()
         text = f"""
                 Error: {e}

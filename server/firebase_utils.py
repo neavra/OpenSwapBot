@@ -11,7 +11,6 @@ SERVICE_ACCOUNT_PATH = os.getenv("SERVICE_ACCOUNT_PATH")
 cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
 app = firebase_admin.initialize_app(cred)
 
-# Function to fetch addresses for a user
 def get_user_address(user_id):
     # Access the Firestore database
     db = firestore.client()
@@ -109,6 +108,51 @@ def insert_token(symbol, address, decimal, chain):
         'address': address,
         'decimal': decimal,
         'chain': chain,
+    }
+
+    # Insert the data into the document
+    doc_ref.set(data)
+
+def get_order(user_id):
+    # Access the Firestore database
+    db = firestore.client()
+
+    # Collection name
+    collection_name = "orders"
+    # Get the document for the specified chat_id
+    doc_ref = db.collection(collection_name).where("user_id", "==", user_id)
+    doc_snapshot = doc_ref.get()
+
+    # Check if the document exists
+    if doc_snapshot != []:
+        # Get the data from the document
+        data = doc_snapshot[0].to_dict()
+        return data
+
+    else:
+        # Document not found
+        return None
+
+def insert_order(order):
+    # Initialize Firestore database
+    db = firestore.client()
+
+    doc_ref = db.collection('orders').document()
+
+    # Create the data to be inserted
+    data = {
+        'user_id': order["user_id"],
+        'side': order['side'],
+        'amount_in': order["amount_in"],
+        'slippage': order["slippage"],
+        'token_in': order["token_in"],
+        'token_out': order["token_out"],
+        'token_in_symbol': order["token_in_symbol"],
+        'token_out_symbol': order["token_out_symbol"],
+        'public_key': order["public_key"],
+        'private_key': order["private_key"],
+        'path_bytes': order["path_bytes"],
+        'status': order["status"],
     }
 
     # Insert the data into the document
