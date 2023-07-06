@@ -104,11 +104,11 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        message = f"""
-        Please confirm your order:
-        Swap {amount_in} of {token_in_symbol} for (estimated) {amount_out} of {token_out_symbol}
-        Slippage: {slippage}
-        """
+        message = (
+        "Please confirm your order:\n"
+        f"Swap {amount_in} of {token_in_symbol} for (estimated) {round(amount_out,5)} of {token_out_symbol}\n"
+        f"Slippage: {slippage}"
+        )
 
         await context.bot.send_message(
                     chat_id=update.effective_chat.id, 
@@ -124,10 +124,10 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        message = f"""
-        Error: {e}
-        When Swapping {token_in_symbol} for {token_out_symbol}
-        """
+        message = (
+        f"Error: {e}\n"
+        f"When Swapping {token_in_symbol} for {token_out_symbol}"
+        )
 
         await context.bot.send_message(
                     chat_id=update.effective_chat.id, 
@@ -161,10 +161,10 @@ async def buy_tokens(update: Update, context: CallbackContext):
         order['status'] = 'SUCCESSFUL'
         server.firebase_utils.insert_order(order)
         await message.delete()
-        text = f"""
-                Swapped {order['amount_in']} of {order['token_in_symbol']} for {amount_out} of {order['token_out_symbol']}!
-                Tx hash: {tx_hash}
-                """
+        text = (
+                f"Swapped {order['amount_in']} of {order['token_in_symbol']} for {amount_out} of {order['token_out_symbol']}!\n"
+                f"Tx hash: {tx_hash}\n"
+                )
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text = text,
@@ -177,10 +177,10 @@ async def buy_tokens(update: Update, context: CallbackContext):
         server.firebase_utils.insert_order(order)
 
         await message.delete()
-        text = f"""
-                Error: {e}
-                When Swapping {order['token_in_symbol']} for {order['token_out_symbol']}
-                """
+        text = (
+                f"Error: {e}\n"
+                f"When Swapping {order['token_in_symbol']} for {order['token_out_symbol']}"
+        )
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text = text,
