@@ -151,44 +151,7 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def buy_tokens_options(update: Update, context: CallbackContext):
-    amount_states = {
-        'amount_0.001' : False,
-        'amount_0.002' : False,
-        'amount_custom': False,
-    }
-    slippage_states= {
-        'slippage_10' : False,
-        'slippage_20' : False,
-        'slippage_30' : False,
-    }
-    emoji = {
-        'amount_0.001' : '',
-        'amount_0.002' : '',
-        'amount_custom': '',
-        'slippage_10' :  '',
-        'slippage_20' :  '',
-        'slippage_30' :  '',
-    }
-    context.user_data["amount_states"] = amount_states
-    context.user_data["slippage_states"] = slippage_states
-    context.user_data["emoji"] = emoji
-    context.user_data["side"] = "Buy"
-    keyboard = [
-        [InlineKeyboardButton(f"Buy Amount", callback_data="empty")],
-        [
-            InlineKeyboardButton("0.001", callback_data="amount_0.001"),
-            InlineKeyboardButton("0.002", callback_data="amount_0.002"),
-            InlineKeyboardButton("Custom: --", callback_data="amount_custom"),
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="empty")],
-        [
-            InlineKeyboardButton("10%", callback_data="slippage_10"),
-            InlineKeyboardButton("20%", callback_data="slippage_20"),
-            InlineKeyboardButton("30%", callback_data="slippage_30"),
-
-        ],
-        [InlineKeyboardButton("< Back", callback_data="start")]
-    ]
+    keyboard = await init_keyboard_dict("Buy", context)
     reply_markup = InlineKeyboardMarkup(keyboard)
     keyboard_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -349,43 +312,8 @@ async def buy_tokens(update: Update, context: CallbackContext):
         return ROUTE
 
 async def sell_tokens_options(update: Update, context: CallbackContext):
-    amount_states = {
-        'amount_0.001' : False,
-        'amount_0.002' : False,
-    }
-    slippage_states= {
-        'slippage_10' : False,
-        'slippage_20' : False,
-        'slippage_30' : False,
-    }
-    emoji ={
-        'amount_0.001' : '',
-        'amount_0.002' : '',
-        'slippage_10' : '',
-        'slippage_20' : '',
-        'slippage_30' : '',
+    keyboard = await init_keyboard_dict("Sell", context)
     
-    }
-    
-    context.user_data["amount_states"] = amount_states
-    context.user_data["slippage_states"] = slippage_states
-    context.user_data["emoji"] = emoji
-    context.user_data["side"] = 'Sell'
-    keyboard = [
-        [InlineKeyboardButton(f"Sell Amount", callback_data="empty")],
-        [
-            InlineKeyboardButton("0.001", callback_data="amount_0.001"),
-            InlineKeyboardButton("0.002", callback_data="amount_0.002"),
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="empty")],
-        [
-            InlineKeyboardButton("10%", callback_data="slippage_10"),
-            InlineKeyboardButton("20%", callback_data="slippage_20"),
-            InlineKeyboardButton("30%", callback_data="slippage_30"),
-
-        ],
-        [InlineKeyboardButton("< Back", callback_data="start")]
-    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -668,7 +596,48 @@ async def custom_amount(update: Update, context: CallbackContext):
     )
     
     return CUSTOM_AMOUNT
-    
+
+async def init_keyboard_dict(side, context):
+    amount_states = {
+        'amount_0.001' : False,
+        'amount_0.002' : False,
+        'amount_custom': False,
+    }
+    slippage_states= {
+        'slippage_10' : False,
+        'slippage_20' : False,
+        'slippage_30' : False,
+    }
+    emoji = {
+        'amount_0.001' : '',
+        'amount_0.002' : '',
+        'amount_custom': '',
+        'slippage_10' :  '',
+        'slippage_20' :  '',
+        'slippage_30' :  '',
+    }
+    context.user_data["amount_states"] = amount_states
+    context.user_data["slippage_states"] = slippage_states
+    context.user_data["emoji"] = emoji
+    context.user_data["side"] = side
+    keyboard = [
+        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
+        [
+            InlineKeyboardButton("0.001", callback_data="amount_0.001"),
+            InlineKeyboardButton("0.002", callback_data="amount_0.002"),
+            InlineKeyboardButton("Custom: --", callback_data="amount_custom"),
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="empty")],
+        [
+            InlineKeyboardButton("10%", callback_data="slippage_10"),
+            InlineKeyboardButton("20%", callback_data="slippage_20"),
+            InlineKeyboardButton("30%", callback_data="slippage_30"),
+
+        ],
+        [InlineKeyboardButton("< Back", callback_data="start")]
+    ]
+    return keyboard
+
 async def validate_options_input(amount_states, slippage_states):
     amount_in = 0
     slippage = 0
