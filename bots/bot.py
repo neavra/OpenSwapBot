@@ -563,6 +563,14 @@ async def custom_amount(update: Update, context: CallbackContext):
         del amount_states['amount_custom']
 
         amount_states[f'amount_{custom_amount}'] = True
+        keyboard = await edit_keyboard(side,context,custom_amount)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await keyboard_message.edit_text(
+            text = "Please choose:", 
+            reply_markup=reply_markup
+        )
+
         await context.bot.send_message( # This sends the prompt for a token address
             chat_id=update.effective_chat.id,
             text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
@@ -572,25 +580,10 @@ async def custom_amount(update: Update, context: CallbackContext):
         else:
             return BUY_TOKENS_CONFIRMATION
 
-    keyboard = [
-        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
-        [
-            InlineKeyboardButton(f'0.001', callback_data="amount_0.001"),
-            InlineKeyboardButton(f'0.002', callback_data="amount_0.002"),
-            InlineKeyboardButton(f'Custom: {custom_amount} \u2705', callback_data="amount_custom"),
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="empty")],
-        [
-            InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
-            InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
-            InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
-
-        ],
-        [InlineKeyboardButton("< Back", callback_data="start")]
-    ]
+    keyboard = await edit_keyboard(side, context, custom_amount)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await keyboard_message.edit_text( # This updates the keyboard
+    await keyboard_message.edit_text(
         text = "Please choose:", 
         reply_markup=reply_markup
     )
@@ -632,6 +625,27 @@ async def init_keyboard_dict(side, context):
             InlineKeyboardButton("10%", callback_data="slippage_10"),
             InlineKeyboardButton("20%", callback_data="slippage_20"),
             InlineKeyboardButton("30%", callback_data="slippage_30"),
+
+        ],
+        [InlineKeyboardButton("< Back", callback_data="start")]
+    ]
+    return keyboard
+
+async def edit_keyboard(side, context, custom_amount):
+    side = context.user_data["side"]
+    emoji = context.user_data["emoji"]
+    keyboard = [
+        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
+        [
+            InlineKeyboardButton(f'0.001', callback_data="amount_0.001"),
+            InlineKeyboardButton(f'0.002', callback_data="amount_0.002"),
+            InlineKeyboardButton(f'Custom: {custom_amount} \u2705', callback_data="amount_custom"),
+        ],
+        [InlineKeyboardButton("Slippage", callback_data="empty")],
+        [
+            InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
+            InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
+            InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
