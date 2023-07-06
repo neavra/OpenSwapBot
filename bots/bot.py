@@ -315,15 +315,18 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     keyboard = await init_keyboard_dict("Sell", context)
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    keyboard_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = "Please choose:", 
         reply_markup=reply_markup)
     
-    await context.bot.send_message(
+    request_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"Please enter the token you would like to sell, you can enter a symbol i.e. BTC or the contract address"
     )
+
+    context.bot_data['request_message'] = request_message
+    context.bot_data['keyboard_message'] = keyboard_message
     return SELL_TOKENS_CONFIRMATION
 
 async def sell_tokens_confirmation(update: Update, context: CallbackContext):
@@ -728,6 +731,7 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(toggle, pattern="^amount_0.001$"),
                 CallbackQueryHandler(toggle, pattern="^amount_0.002$"),
+                CallbackQueryHandler(toggle, pattern="^amount_custom$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_10$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_20$"),
                 CallbackQueryHandler(toggle, pattern="^slippage_30$"),
