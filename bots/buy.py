@@ -159,6 +159,7 @@ async def buy_tokens(update: Update, context: CallbackContext):
     
         amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])
         order['status'] = 'SUCCESSFUL'
+        order['tx_hash'] = tx_hash
         server.firebase_utils.insert_order(order)
         await message.delete()
         text = (
@@ -174,6 +175,7 @@ async def buy_tokens(update: Update, context: CallbackContext):
 
     except Exception as e:
         order['status'] = 'UNSUCCESSFUL'
+        order['tx_hash'] = ''
         server.firebase_utils.insert_order(order)
 
         await message.delete()

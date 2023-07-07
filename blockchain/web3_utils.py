@@ -242,7 +242,7 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
         'to': UNISWAP_ROUTER_ADDRESS,
         'value': 0,
         'gas': 1000000,
-        'gasPrice': web3.to_wei('2', 'gwei'),#web3.eth.gas_price,
+        'gasPrice': web3.eth.gas_price,
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': swap_data
     }

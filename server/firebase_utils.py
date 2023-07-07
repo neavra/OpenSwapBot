@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 import os
+import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -149,10 +150,10 @@ def insert_order(order):
         'token_out': order["token_out"],
         'token_in_symbol': order["token_in_symbol"],
         'token_out_symbol': order["token_out_symbol"],
-        'public_key': order["public_key"],
-        'private_key': order["private_key"],
         'path_bytes': order["path_bytes"],
         'status': order["status"],
+        'tx_hash': order['tx_hash'],
+        'inserted_at': datetime.datetime.now(),
     }
 
     # Insert the data into the document
