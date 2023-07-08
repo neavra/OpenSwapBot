@@ -2,7 +2,7 @@ import logging
 import sys
 from dotenv import load_dotenv
 
-sys.path.append("../")
+sys.path.append("./")
 
 import blockchain.web3_utils
 import server.firebase_utils
