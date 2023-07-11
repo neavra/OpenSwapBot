@@ -70,6 +70,9 @@ async def start(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton("View Token Balances", callback_data="view_token_balances"),
             InlineKeyboardButton("List of Popular Tokens", callback_data="list_popular_tokens"),
+        ],
+        [
+            InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -151,6 +154,50 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="I did not understand that command",
         reply_markup= reply_markup
     )
+async def transfer_tokens(update: Update, context: CallbackContext):
+    message = "Please Select Token"
+    keyboard = []
+    tokens = server.firebase_utils.get_tokens()
+    public_key = context.user_data['public_key']
+
+    for token in tokens:
+        symbol = token["symbol"]
+        balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
+        context.user_data['balance'] = balance
+        if balance != 0:
+            keyboard += [InlineKeyboardButton(f'{symbol} : {balance}', callback_data= 'select amount')],
+    keyboard += [InlineKeyboardButton("< Back", callback_data="start")],
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = message,
+        reply_markup= reply_markup
+    )
+
+    return ROUTE    
+async def select_amount(update: Update, context: CallbackContext):
+    message = 'Please select amount'
+    balance = context.user_data['balance']
+    quater = '1/4'
+    half = '1/2'
+    threefourth = '3/4'
+    keyboard = [
+        [InlineKeyboardButton(f'{quater}', callback_data='.'),
+         InlineKeyboardButton(f'{half}', callback_data='.'),
+         InlineKeyboardButton(f'{threefourth}', callback_data='.'),
+         InlineKeyboardButton(f'{balance}', callback_data='.')
+         ],
+        [InlineKeyboardButton('< Back', callback_data='start')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = message,
+        reply_markup= reply_markup)
+
+    return ROUTE
+
 
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
@@ -165,6 +212,8 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(view_token_balances, pattern = "^view_token_balances$"),
                 CallbackQueryHandler(list_popular_tokens, pattern = "^list_popular_tokens$"),
+                CallbackQueryHandler(transfer_tokens, pattern = "^transfer_tokens$"),
+                CallbackQueryHandler(select_amount, pattern = "^select amount$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
