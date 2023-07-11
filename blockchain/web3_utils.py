@@ -266,3 +266,46 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
     except Exception as e:
         print(f'An error occurred: {e}')
     
+async def transfer_token(from_address, to_address, amount, private_key, token_address = None):
+    wei_amount = web3.to_wei(amount, 'ether')
+    if token_address == None:
+        # Get the nonce of the sender address
+        nonce = web3.eth.get_transaction_count(from_address)
+
+        # Create a transaction object
+        transaction = {
+            'to': to_address,
+            'value': wei_amount,
+            'gas': 21000,  # Set an appropriate gas limit for a basic ETH transfer
+            'gasPrice': web3.eth.gas_price,
+            'nonce': web3.eth.get_transaction_count(from_address)
+        }
+
+        # Sign the transaction with the private key
+        signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+
+        # Send the signed transaction
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+    else:
+        # Load the token contract using its address
+        token_contract = web3.eth.contract(address=token_address, abi=ERC20_ABI)
+
+        # Encode the transfer function with the destination address and token amount
+        transfer_data = token_contract.encodeABI(fn_name='transfer', args=[to_address, wei_amount])
+
+        # Create a transaction object
+        transaction = {
+            'to': token_address,
+            'data': transfer_data,
+            'gas': 200000,  # Set an appropriate gas limit
+            'gasPrice': web3.eth.gas_price,
+            'nonce': web3.eth.get_transaction_count(from_address)
+        }
+
+        # Sign the transaction with the private key
+        signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+
+        # Send the signed transaction
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+
+    return tx_hash
