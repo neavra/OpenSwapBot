@@ -91,7 +91,7 @@ async def toggle(update: Update, context: CallbackContext):
     )
     if side == "Sell":
         return SELL_TOKENS_CONFIRMATION
-    else:
+    elif side == "Buy":
         return BUY_TOKENS_CONFIRMATION
 
 async def custom_amount(update: Update, context: CallbackContext):
@@ -127,7 +127,7 @@ async def custom_amount(update: Update, context: CallbackContext):
         )
         if side == "Sell":
             return SELL_TOKENS_CONFIRMATION
-        else:
+        elif side == "Buy":
             return BUY_TOKENS_CONFIRMATION
 
     keyboard = await edit_keyboard(side, context, custom_amount)
