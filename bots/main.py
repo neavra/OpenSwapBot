@@ -11,7 +11,7 @@ from telegram.ext import (
 from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
-from transfer import (transfer_tokens, select_amount)
+from transfer import (transfer_tokens_options, select_amount, transfer_tokens_confirmation)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -73,7 +73,7 @@ async def start(update: Update, context: CallbackContext):
             InlineKeyboardButton("List of Popular Tokens", callback_data="list_popular_tokens"),
         ],
         [
-            InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens")
+            InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens_options")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -170,12 +170,17 @@ def main():
                 CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(view_token_balances, pattern = "^view_token_balances$"),
                 CallbackQueryHandler(list_popular_tokens, pattern = "^list_popular_tokens$"),
-                CallbackQueryHandler(transfer_tokens, pattern = "^transfer_tokens$"),
-                CallbackQueryHandler(select_amount, pattern = "^select amount$"),
+                CallbackQueryHandler(select_amount, pattern = "^select_amount$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
+                CallbackQueryHandler(transfer_tokens_options, pattern = "^transfer_tokens_options$"),
+                CallbackQueryHandler(transfer_tokens_confirmation, pattern = "^transfer_25%$"),
+                CallbackQueryHandler(transfer_tokens_confirmation, pattern = "^transfer_50%$"),
+                CallbackQueryHandler(transfer_tokens_confirmation, pattern = "^transfer_75%$"),
+                CallbackQueryHandler(transfer_tokens_confirmation, pattern = "^transfer_100%$"),
+
             },
             BUY_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),
