@@ -11,6 +11,7 @@ from telegram.ext import (
 from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
+from transfer import (transfer_tokens, select_amount)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -154,49 +155,6 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="I did not understand that command",
         reply_markup= reply_markup
     )
-async def transfer_tokens(update: Update, context: CallbackContext):
-    message = "Please Select Token"
-    keyboard = []
-    tokens = server.firebase_utils.get_tokens()
-    public_key = context.user_data['public_key']
-
-    for token in tokens:
-        symbol = token["symbol"]
-        balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
-        context.user_data['balance'] = balance
-        if balance != 0:
-            keyboard += [InlineKeyboardButton(f'{symbol} : {balance}', callback_data= 'select amount')],
-    keyboard += [InlineKeyboardButton("< Back", callback_data="start")],
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text = message,
-        reply_markup= reply_markup
-    )
-
-    return ROUTE    
-async def select_amount(update: Update, context: CallbackContext):
-    message = 'Please select amount'
-    balance = context.user_data['balance']
-    quater = '1/4'
-    half = '1/2'
-    threefourth = '3/4'
-    keyboard = [
-        [InlineKeyboardButton(f'{quater}', callback_data='.'),
-         InlineKeyboardButton(f'{half}', callback_data='.'),
-         InlineKeyboardButton(f'{threefourth}', callback_data='.'),
-         InlineKeyboardButton(f'{balance}', callback_data='.')
-         ],
-        [InlineKeyboardButton('< Back', callback_data='start')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text = message,
-        reply_markup= reply_markup)
-
-    return ROUTE
 
 
 def main():
