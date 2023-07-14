@@ -34,7 +34,6 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
     for token in tokens:
         symbol = token["symbol"]
         balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
-        context.user_data['balance'] = balance
         if balance != 0:
             keyboard += [InlineKeyboardButton(f'{symbol}', callback_data= f'select_transfer_amount_{symbol}')],
     if keyboard == []:
@@ -76,6 +75,13 @@ async def select_transfer_amount(update: Update, context: CallbackContext):
     return ROUTE
 
 async def select_transfer_address(update: Update, context: CallbackContext):
+    # query= update.callback_query 
+    # await query.answer()
+    # callback_data = query.data
+    # amount_percentage = callback_data.split("_")[-1]
+    # # THis method should be extensible to buy and sell amount
+    # amount = calculate_amount(amount_percentage, token["address"], public_key)
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"Please enter the wallet address that you would like to send to"
