@@ -124,7 +124,7 @@ def wrap_eth(amount, public_key, private_key):
     transaction = {
         'to': WETH_ADDRESS,
         'value': eth_amount,
-        'gas': 200000,
+        'gas': 300000,
         'gasPrice': web3.eth.gas_price,
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': tx_data,
@@ -154,7 +154,7 @@ def unwrap_eth(amount, public_key, private_key):
     transaction = {
         'to': WETH_ADDRESS,
         'value': 0,
-        'gas': 200000,
+        'gas': 300000,
         'gasPrice': web3.eth.gas_price,
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': tx_data,
@@ -190,7 +190,7 @@ def approve_contract(public_key, private_key, token_in):
     transaction = {
         'to': token_in,
         'value': 0,
-        'gas': 200000,
+        'gas': 300000,
         'gasPrice': web3.eth.gas_price,
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': tx_data,
@@ -248,7 +248,7 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
     transaction = {
         'to': UNISWAP_ROUTER_ADDRESS,
         'value': 0,
-        'gas': 1000000,
+        'gas': 2000000,
         'gasPrice': web3.eth.gas_price,
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': swap_data
