@@ -19,7 +19,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT = range(4)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION = range(5)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -43,7 +43,7 @@ async def toggle(update: Update, context: CallbackContext):
 
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
-    side = context.user_data["side"]
+    type = context.user_data["type"]
     emoji = context.user_data["emoji"]
 
     if 'amount' in callback_data:
@@ -53,7 +53,7 @@ async def toggle(update: Update, context: CallbackContext):
     context.user_data["emoji"] = emoji
 
     keyboard = [
-        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
+        [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
         [
             InlineKeyboardButton(f'0.001 {emoji["amount_0.001"]}', callback_data="amount_0.001"),
             InlineKeyboardButton(f'0.002 {emoji["amount_0.002"]}', callback_data="amount_0.002"),
@@ -89,13 +89,13 @@ async def toggle(update: Update, context: CallbackContext):
         text = "Please choose:", 
         reply_markup=reply_markup
     )
-    if side == "Sell":
+    if type == "Sell":
         return SELL_TOKENS_CONFIRMATION
     else:
         return BUY_TOKENS_CONFIRMATION
 
 async def custom_amount(update: Update, context: CallbackContext):
-    side = context.user_data["side"]
+    type = context.user_data["type"]
     keyboard_message = context.bot_data["keyboard_message"]
     slippage_states = context.user_data["slippage_states"]
     amount_states = context.user_data["amount_states"]
@@ -113,7 +113,7 @@ async def custom_amount(update: Update, context: CallbackContext):
         del amount_states['amount_custom']
 
         amount_states[f'amount_{custom_amount}'] = True
-        keyboard = await edit_keyboard(side,context,custom_amount)
+        keyboard = await edit_keyboard(type,context,custom_amount)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await keyboard_message.edit_text(
@@ -125,12 +125,12 @@ async def custom_amount(update: Update, context: CallbackContext):
             chat_id=update.effective_chat.id,
             text=f"Please enter the token you would like to buy, you can enter a symbol i.e. BTC or the contract address"
         )
-        if side == "Sell":
+        if type == "Sell":
             return SELL_TOKENS_CONFIRMATION
         else:
             return BUY_TOKENS_CONFIRMATION
 
-    keyboard = await edit_keyboard(side, context, custom_amount)
+    keyboard = await edit_keyboard(type, context, custom_amount)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await keyboard_message.edit_text(
@@ -140,7 +140,7 @@ async def custom_amount(update: Update, context: CallbackContext):
     
     return CUSTOM_AMOUNT
 
-async def init_keyboard_dict(side, context):
+async def init_keyboard_dict(type, context):
     amount_states = {
         'amount_0.001' : False,
         'amount_0.002' : False,
@@ -162,9 +162,9 @@ async def init_keyboard_dict(side, context):
     context.user_data["amount_states"] = amount_states
     context.user_data["slippage_states"] = slippage_states
     context.user_data["emoji"] = emoji
-    context.user_data["side"] = side
+    context.user_data["type"] = type
     keyboard = [
-        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
+        [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
         [
             InlineKeyboardButton("0.001", callback_data="amount_0.001"),
             InlineKeyboardButton("0.002", callback_data="amount_0.002"),
@@ -181,11 +181,11 @@ async def init_keyboard_dict(side, context):
     ]
     return keyboard
 
-async def edit_keyboard(side, context, custom_amount):
-    side = context.user_data["side"]
+async def edit_keyboard(type, context, custom_amount):
+    type = context.user_data["type"]
     emoji = context.user_data["emoji"]
     keyboard = [
-        [InlineKeyboardButton(f"{side} Amount", callback_data="empty")],
+        [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
         [
             InlineKeyboardButton(f'0.001', callback_data="amount_0.001"),
             InlineKeyboardButton(f'0.002', callback_data="amount_0.002"),

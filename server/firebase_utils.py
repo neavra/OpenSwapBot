@@ -40,6 +40,26 @@ def get_user_address(user_id):
         # Document not found
         return []
 
+def get_private_key(public_key):
+    # Access the Firestore database
+    db = firestore.client()
+
+    # Collection name
+    collection_name = "addresses"
+    # Get the document for the specified chat_id
+    doc_ref = db.collection(collection_name).where("publicKey", "==", public_key)
+    doc_snapshot = doc_ref.get()
+
+    # Check if the document exists
+    if doc_snapshot != []:
+        # Get the data from the document
+        data = doc_snapshot[0].to_dict()
+        return data['privateKey']
+
+    else:
+        # Document not found
+        return None
+
 def insert_user_address(user_id, user_handle, public_key, private_key):
     # Initialize Firestore database
     db = firestore.client()
@@ -140,21 +160,6 @@ def insert_order(order):
 
     doc_ref = db.collection('orders').document()
 
-    # Create the data to be inserted
-    data = {
-        'user_id': order["user_id"],
-        'side': order['side'],
-        'amount_in': order["amount_in"],
-        'slippage': order["slippage"],
-        'token_in': order["token_in"],
-        'token_out': order["token_out"],
-        'token_in_symbol': order["token_in_symbol"],
-        'token_out_symbol': order["token_out_symbol"],
-        'path_bytes': order["path_bytes"],
-        'status': order["status"],
-        'tx_hash': order['tx_hash'],
-        'inserted_at': datetime.datetime.now(),
-    }
+    order['inserted_at'] = datetime.datetime.now()
 
-    # Insert the data into the document
-    doc_ref.set(data)
+    doc_ref.set(order)

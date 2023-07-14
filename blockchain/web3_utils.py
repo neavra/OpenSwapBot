@@ -216,7 +216,7 @@ async def get_swap_quote(path, amount_in):
 
 async def swap_token(token_in, token_out, public_key, private_key, amount_in):
 
-    if token_in == WETH_ADDRESS: # This should be changed to an order side field instead instead
+    if token_in == WETH_ADDRESS:
         wrap_eth(amount_in, public_key, private_key)
     
     allowance = check_approval(token_in, public_key)

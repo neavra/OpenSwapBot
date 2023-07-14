@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT = range(4)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION = range(5)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -36,7 +36,7 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
         balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
         context.user_data['balance'] = balance
         if balance != 0:
-            keyboard += [InlineKeyboardButton(f'{symbol}', callback_data= 'select_amount')],
+            keyboard += [InlineKeyboardButton(f'{symbol}', callback_data= f'select_transfer_amount_{symbol}')],
     if keyboard == []:
         message = "You have no detected balances!"
 
@@ -51,7 +51,12 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
 
     return ROUTE    
 
-async def select_amount(update: Update, context: CallbackContext):
+async def select_transfer_amount(update: Update, context: CallbackContext):
+    query= update.callback_query 
+    await query.answer()
+    callback_data = query.data
+    symbol = callback_data.split("_")[-1]
+    context.user_data['symbol'] = symbol
     message = 'Please select amount'
 
     keyboard = [
@@ -70,18 +75,45 @@ async def select_amount(update: Update, context: CallbackContext):
 
     return ROUTE
 
+async def select_transfer_address(update: Update, context: CallbackContext):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"Please enter the wallet address that you would like to send to"
+    )
+    return TRANSFER_TOKENS_CONFIRMATION
+
 async def transfer_tokens_confirmation(update: Update, context: CallbackContext):
-    # Handle logic for amount calculations and fetch token selected
+    public_key = context.user_data['public_key']
+    private_key = server.firebase_utils.get_private_key(public_key)
+    to_address = update.message.text
+    token_symbol =  context.user_data['symbol']
+    token = server.firebase_utils.get_token(token_symbol)
+    user_id = context.user_data['user_id']
+
+    amount = 0.001
+    
     keyboard = [
-        [InlineKeyboardButton("Confirm", callback_data="buy_tokens"),InlineKeyboardButton("< Back", callback_data="start")]
+        [InlineKeyboardButton("Confirm", callback_data="transfer_tokens"),InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     message = (
     "Please confirm your order:\n"
-    f"Transfers\n"
-    f"Slippage"
+    f"Transfer {amount} of {token_symbol} from {public_key} to {to_address}\n"
     )
+
+    order = {
+        'user_id': user_id,
+        'type': 'Transfer',
+        'amount': amount,
+        'token_address': token['address'],
+        'token_symbol': token_symbol,
+        'from_address': public_key,
+        'to_address': to_address,
+        'private_key': private_key,
+        'status': 'PENDING',
+    }
+    context.user_data['order'] = order
 
     await context.bot.send_message(
                 chat_id=update.effective_chat.id, 
@@ -90,3 +122,47 @@ async def transfer_tokens_confirmation(update: Update, context: CallbackContext)
                 reply_markup=reply_markup
             )
     return ROUTE
+
+async def transfer_tokens(update: Update, context: CallbackContext):
+    order = context.user_data['order']
+
+    loading_message = "Transferring Tokens, this might take a while..."
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
+
+    keyboard = [
+        [InlineKeyboardButton("< Back", callback_data="start")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    try:
+        tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'], order['token_address'])
+        order['status'] = 'SUCCESSFUL'
+        order['tx_hash'] = tx_hash
+        server.firebase_utils.insert_order(order)
+        await message.delete()
+        text = (
+                f"Transferred  {order['amount']} of {order['token_symbol']} from {order['from_address']} to {order['to_address']}!\n"
+                f"Tx hash: {tx_hash}\n"
+                )
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text = text,
+            reply_markup= reply_markup
+        )
+        return ROUTE
+
+    except Exception as e:
+        order['status'] = 'UNSUCCESSFUL'
+        order['tx_hash'] = ''
+        server.firebase_utils.insert_order(order)
+
+        await message.delete()
+        text = (
+                f"Error: {e}\n"
+                f"When Transferring {order['amount']} of {order['token_symbol']} from {order['from_address']} to {order['to_address']}"
+        )
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text = text,
+            reply_markup= reply_markup
+        )
+        return ROUTE
