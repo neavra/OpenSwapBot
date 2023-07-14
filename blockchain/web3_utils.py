@@ -4,8 +4,15 @@ import secrets
 import os
 import json
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 NODE_PROVIDER_ENDPOINT = os.getenv("NODE_PROVIDER_ENDPOINT_TESTNET")
 web3 = Web3(Web3.HTTPProvider(NODE_PROVIDER_ENDPOINT))
@@ -106,7 +113,7 @@ def parse_swap_receipt(receipt, token_address, public_key):
     raise ValueError("Amount_out not found in the swap receipt logs.")
 
 def wrap_eth(amount, public_key, private_key):
-    print("Wrapping ETH to WETH")
+    logger.info("Wrapping ETH to WETH")
 
     weth_contract = web3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
     eth_amount = web3.to_wei(amount, 'ether')
@@ -130,13 +137,13 @@ def wrap_eth(amount, public_key, private_key):
     receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
     if receipt['status']:
-        print(f'Wrapping successful! {tx_hash}')
+        logger.info(f'Wrapping successful! {tx_hash}')
         return tx_hash
     else:
-        print('Wrapping failed.')
+        logger.info('Wrapping failed.')
 
 def unwrap_eth(amount, public_key, private_key):
-    print("Unwrapping WETH to ETH")
+    logger.info("Unwrapping WETH to ETH")
 
     weth_contract = web3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
     wad = web3.to_wei(amount, 'ether')
@@ -160,19 +167,19 @@ def unwrap_eth(amount, public_key, private_key):
     receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
     if receipt['status']:
-        print(f'Unwrapping successful! {tx_hash}')
+        logger.info(f'Unwrapping successful! {tx_hash}')
         return tx_hash
     else:
-        print('Unwrapping failed.')
+        logger.info('Unwrapping failed.')
 
 def check_approval(token_in, public_key):
-    print("Checking approval")
+    logger.info("Checking approval")
     contract = web3.eth.contract(address = token_in, abi = ERC20_ABI)
     allowance = contract.functions.allowance(public_key, UNISWAP_ROUTER_ADDRESS).call()
     return allowance
 
 def approve_contract(public_key, private_key, token_in):
-    print("Approving contract")
+    logger.info("Approving contract")
     # Create a contract instance for the token
     contract = web3.eth.contract(address=token_in, abi=ERC20_ABI)
     eth_amount = web3.to_wei(MAX_INT/(10**19), 'ether') # Need to edit this to max amount
@@ -197,10 +204,10 @@ def approve_contract(public_key, private_key, token_in):
 
     # Check the transaction status
     if receipt['status']:
-        print(f'Approval successful! {tx_hash}')
+        logger.info(f'Approval successful! {tx_hash}')
         return tx_hash
     else:
-        print('Approval failed.')
+        logger.info('Approval failed.')
 
 async def get_swap_quote(path, amount_in):
     eth_amount = web3.to_wei(amount_in, 'ether')
@@ -223,7 +230,7 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
     if web3.from_wei(allowance, 'ether') < amount_in:
         approve_contract(public_key, private_key, token_in)
 
-    print("Executing Swap")
+    logger.info("Executing Swap")
     uniswap_router = web3.eth.contract(address=UNISWAP_ROUTER_ADDRESS, abi=UNISWAP_ROUTER_ABI)
 
     # Set the amount of ETH you want to swap and the desired minimum amount of target token to receive
@@ -258,13 +265,13 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
             if token_out == WETH_ADDRESS:
                 amount = get_balanceOf(WETH_ADDRESS, public_key)
                 unwrap_tx_hash = unwrap_eth(amount, public_key,private_key)
-                print(f'Unwrap Succesful! {unwrap_tx_hash}')
-            print(f'Swap successful! {tx_hash}')
+                logger.info(f'Unwrap Succesful! {unwrap_tx_hash}')
+            logger.info(f'Swap successful! {tx_hash}')
             return receipt
         else:
-            print('Swap failed.')
+            logger.info('Swap failed.')
     except Exception as e:
-        print(f'An error occurred: {e}')
+        logger.info(f'An error occurred: {e}')
     
 async def transfer_token(from_address, to_address, amount, private_key, token_address = None):
     wei_amount = web3.to_wei(amount, 'ether')

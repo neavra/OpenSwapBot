@@ -55,7 +55,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
     if  amount_in == 0 or slippage == 0:
         keyboard = [
-            [InlineKeyboardButton("< Back", callback_data="buy_tokens_options")]
+            [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -73,7 +73,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         chat_id=update.effective_chat.id,
         text =f"Could not identify the token, please input the token contract",
         )
-        return BUY_TOKENS_CONFIRMATION
+        return SELL_TOKENS_CONFIRMATION
     
     address = server.firebase_utils.get_user_address(user_id)
 
@@ -102,7 +102,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
 
         keyboard = [
-            [InlineKeyboardButton("Confirm", callback_data="sell_tokens"),InlineKeyboardButton("Go back", callback_data="start")]
+            [InlineKeyboardButton("Confirm", callback_data="sell_tokens"),InlineKeyboardButton("< Back", callback_data="start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -122,7 +122,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
     except Exception as e:
         keyboard = [
-            [InlineKeyboardButton("Go back", callback_data="start")]
+            [InlineKeyboardButton("< Back", callback_data="start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 

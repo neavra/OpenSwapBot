@@ -82,7 +82,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
     order = {
         'user_id': user_id,
-        'type': 'Sell',
+        'type': 'Buy',
         'amount_in': amount_in,
         'slippage': slippage,
         'token_in': WETH_ADDRESS,
