@@ -7,8 +7,7 @@ from telegram import (
 from telegram.ext import (
     CallbackContext
 )
-from toggle_keyboard import (init_keyboard_dict)
-from validate import (validate_options_input, validate_token_input)
+from validate import (validate_wallets_input)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -35,17 +34,30 @@ async def import_wallet_options(update: Update, context: CallbackContext):
     return IMPORT_WALLET
 
 async def import_wallet(update: Update, context: CallbackContext):
-    private_key = update.message.text
-    public_key = blockchain.web3_utils.derive_public_key(private_key)
     user_id = context.user_data['user_id']
     user_handle = update.effective_user.username
+    private_key = update.message.text
+    [public_key, e] = await validate_wallets_input(user_id, private_key)
 
+    if e != '':
+        keyboard = [
+            [InlineKeyboardButton("< Back", callback_data="buy_tokens_options")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=(f"Invalid input: {e}\n"
+                  f"Please enter the private key of the wallet you want to import"
+            ),
+            reply_markup=reply_markup
+        )
+        return IMPORT_WALLET
+    
     server.firebase_utils.insert_user_address(user_id, user_handle, public_key, private_key)
     keyboard = [
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
     text = (
         f"Wallet Imported!"
         )

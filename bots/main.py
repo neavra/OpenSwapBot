@@ -219,16 +219,19 @@ def main():
             CUSTOM_AMOUNT: {
                 CommandHandler('start', start),
                 MessageHandler(filters.TEXT, custom_amount),
+                CallbackQueryHandler(start, pattern = "^start$"),
                 CallbackQueryHandler(custom_amount, pattern="^slippage_10$"),
                 CallbackQueryHandler(custom_amount, pattern="^slippage_20$"),
                 CallbackQueryHandler(custom_amount, pattern="^slippage_30$"),
             },
             TRANSFER_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),
+                CallbackQueryHandler(start, pattern = "^start$"),
                 MessageHandler(filters.TEXT, transfer_tokens_confirmation),
             },
             IMPORT_WALLET: {
                 CommandHandler('start', start),
+                CallbackQueryHandler(start, pattern = "^start$"),
                 MessageHandler(filters.TEXT, import_wallet),
             }
         },

@@ -59,3 +59,20 @@ async def validate_token_input(token_input):
     except Exception as e:
         logger.info(f"Error when validating token_input: {e}")
         return ""
+
+async def validate_wallets_input(user_id ,private_key):
+    if private_key[:2] != '0x':
+        private_key = '0x' +private_key
+    try:
+        if len(private_key) != 66:
+            raise ValueError("Incorrect length of private key")
+        else:
+            public_key = blockchain.web3_utils.derive_public_key(private_key)
+        # Check for repeated imports
+        addresses = server.firebase_utils.get_user_address(user_id)
+        if public_key in [address for address in addresses]:
+            raise ValueError("Wallet already exists")
+        return [public_key, '']
+    except Exception as e:
+        logger.info(f'Error when validating wallets input: {e}')
+        return ['0x0', e]
