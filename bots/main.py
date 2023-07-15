@@ -12,6 +12,7 @@ from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
 from transfer import (transfer_tokens_options, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
+from wallet import (import_wallet_options, import_wallet)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -26,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION = range(5)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET = range(6)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -87,6 +88,9 @@ async def start(update: Update, context: CallbackContext):
         ],
         [
             InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens_options")
+        ],
+        [
+            InlineKeyboardButton("Import Wallet", callback_data="import_wallet_options")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -187,6 +191,7 @@ def main():
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_75%$"),
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_100%$"),
                 CallbackQueryHandler(transfer_tokens, pattern = "^transfer_tokens$"),
+                CallbackQueryHandler(import_wallet_options, pattern = "^import_wallet_options$"),
 
             },
             BUY_TOKENS_CONFIRMATION: {
@@ -221,6 +226,10 @@ def main():
             TRANSFER_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),
                 MessageHandler(filters.TEXT, transfer_tokens_confirmation),
+            },
+            IMPORT_WALLET: {
+                CommandHandler('start', start),
+                MessageHandler(filters.TEXT, import_wallet),
             }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
