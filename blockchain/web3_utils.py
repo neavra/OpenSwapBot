@@ -128,7 +128,7 @@ def wrap_eth(amount, public_key, private_key):
         'to': WETH_ADDRESS,
         'value': eth_amount,
         'gas': 300000,
-        'gasPrice': web3.eth.gas_price,
+        'gasPrice': int(1.1 * web3.eth.gas_price),
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': tx_data,
     }
@@ -158,7 +158,7 @@ def unwrap_eth(amount, public_key, private_key):
         'to': WETH_ADDRESS,
         'value': 0,
         'gas': 300000,
-        'gasPrice': web3.eth.gas_price,
+        'gasPrice': int(1.1 * web3.eth.gas_price),
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': tx_data,
     }
@@ -194,7 +194,7 @@ def approve_contract(public_key, private_key, token_in):
         'to': token_in,
         'value': 0,
         'gas': 300000,
-        'gasPrice': web3.eth.gas_price,
+        'gasPrice': int(1.1 * web3.eth.gas_price),
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': tx_data,
     }
@@ -252,7 +252,7 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
         'to': UNISWAP_ROUTER_ADDRESS,
         'value': 0,
         'gas': 2000000,
-        'gasPrice': web3.eth.gas_price,
+        'gasPrice': int(1.1 * web3.eth.gas_price),
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': swap_data
     }
@@ -284,7 +284,7 @@ async def transfer_token(from_address, to_address, amount, private_key, token_ad
             'to': to_address,
             'value': wei_amount,
             'gas': 21000,  # Set an appropriate gas limit for a basic ETH transfer
-            'gasPrice': web3.eth.gas_price,
+            'gasPrice': int(1.1 * web3.eth.gas_price),
             'nonce': web3.eth.get_transaction_count(from_address)
         }
 
@@ -312,7 +312,7 @@ async def transfer_token(from_address, to_address, amount, private_key, token_ad
             'to': token_address,
             'data': transfer_data,
             'gas': 200000,  # Set an appropriate gas limit
-            'gasPrice': web3.eth.gas_price,
+            'gasPrice': int(1.1 * web3.eth.gas_price),
             'nonce': web3.eth.get_transaction_count(from_address)
         }
 
