@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT = range(4)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION = range(5)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -84,7 +84,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
     order = {
         'user_id': user_id,
-        'side': 'Sell',
+        'type': 'Sell',
         'amount_in': amount_in,
         'slippage': slippage,
         'token_in': token_in,

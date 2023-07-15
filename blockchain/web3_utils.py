@@ -74,6 +74,9 @@ def get_decimal(token_address):
     return decimal
 
 def get_balanceOf(address, public_key):
+    if address == '0x0000000000000000000000000000000000000000':
+        balance_in_ether = get_eth_balance(public_key)
+        return balance_in_ether
     contract = web3.eth.contract(address=address, abi=WETH_ABI)
 
     balance = contract.functions.balanceOf(public_key).call()
@@ -223,7 +226,7 @@ async def get_swap_quote(path, amount_in):
 
 async def swap_token(token_in, token_out, public_key, private_key, amount_in):
 
-    if token_in == WETH_ADDRESS: # This should be changed to an order side field instead instead
+    if token_in == WETH_ADDRESS:
         wrap_eth(amount_in, public_key, private_key)
     
     allowance = check_approval(token_in, public_key)
@@ -273,3 +276,55 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
     except Exception as e:
         logger.info(f'An error occurred: {e}')
     
+async def transfer_token(from_address, to_address, amount, private_key, token_address = None):
+    wei_amount = web3.to_wei(amount, 'ether')
+    if token_address == None:
+        # Create a transaction object
+        transaction = {
+            'to': to_address,
+            'value': wei_amount,
+            'gas': 21000,  # Set an appropriate gas limit for a basic ETH transfer
+            'gasPrice': web3.eth.gas_price,
+            'nonce': web3.eth.get_transaction_count(from_address)
+        }
+
+        # Sign the transaction with the private key
+        signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+
+        # Send the signed transaction
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt['status']:
+            logger.info('Transfer Successful!')
+            return tx_hash
+        else:
+            logger.info('Transfer failed.')
+    else:
+        # Load the token contract using its address
+        token_contract = web3.eth.contract(address=token_address, abi=ERC20_ABI)
+
+        # Encode the transfer function with the destination address and token amount
+        transfer_data = token_contract.encodeABI(fn_name='transfer', args=[to_address, wei_amount])
+
+        # Create a transaction object
+        transaction = {
+            'to': token_address,
+            'data': transfer_data,
+            'gas': 200000,  # Set an appropriate gas limit
+            'gasPrice': web3.eth.gas_price,
+            'nonce': web3.eth.get_transaction_count(from_address)
+        }
+
+        # Sign the transaction with the private key
+        signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+
+        # Send the signed transaction
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt['status']:
+            logger.info('Transfer Successful!')
+            return tx_hash
+        else:
+            logger.info('Transfer failed.')

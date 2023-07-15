@@ -11,6 +11,7 @@ from telegram.ext import (
 from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
+from transfer import (transfer_tokens_options, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -25,7 +26,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT = range(4)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION = range(5)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -70,6 +71,9 @@ async def start(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton("View Token Balances", callback_data="view_token_balances"),
             InlineKeyboardButton("List of Popular Tokens", callback_data="list_popular_tokens"),
+        ],
+        [
+            InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens_options")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -152,6 +156,7 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup= reply_markup
     )
 
+
 def main():
     app = ApplicationBuilder().token(TELE_TOKEN).build()
 
@@ -169,6 +174,14 @@ def main():
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
+                CallbackQueryHandler(transfer_tokens_options, pattern = "^transfer_tokens_options$"),
+                CallbackQueryHandler(select_transfer_amount, pattern="^select_transfer_amount.*"),
+                CallbackQueryHandler(select_transfer_address, pattern = "^transfer_25%$"),
+                CallbackQueryHandler(select_transfer_address, pattern = "^transfer_50%$"),
+                CallbackQueryHandler(select_transfer_address, pattern = "^transfer_75%$"),
+                CallbackQueryHandler(select_transfer_address, pattern = "^transfer_100%$"),
+                CallbackQueryHandler(transfer_tokens, pattern = "^transfer_tokens$"),
+
             },
             BUY_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),
@@ -199,6 +212,10 @@ def main():
                 CallbackQueryHandler(custom_amount, pattern="^slippage_20$"),
                 CallbackQueryHandler(custom_amount, pattern="^slippage_30$"),
             },
+            TRANSFER_TOKENS_CONFIRMATION: {
+                CommandHandler('start', start),
+                MessageHandler(filters.TEXT, transfer_tokens_confirmation),
+            }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
     )
