@@ -26,10 +26,11 @@ FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
 async def transfer_tokens_options(update: Update, context: CallbackContext):
+    public_key = context.user_data['public_key']
+
     message = "Please Select Token"
     keyboard = []
     tokens = server.firebase_utils.get_tokens()
-    public_key = context.user_data['public_key']
 
     for token in tokens:
         symbol = token["symbol"]
@@ -145,7 +146,10 @@ async def transfer_tokens(update: Update, context: CallbackContext):
     logger.info(f'Processing Order: {order}')
 
     try:
-        tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'], order['token_address'])
+        if order['token_address'] == "0x0000000000000000000000000000000000000000":
+            tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'])
+        else:
+            tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'], order['token_address'])
         order['status'] = 'SUCCESSFUL'
         order['tx_hash'] = tx_hash
         server.firebase_utils.insert_order(order)
@@ -181,9 +185,12 @@ async def transfer_tokens(update: Update, context: CallbackContext):
 async def calculate_amount(amount_percentage, symbol, public_key):
     amount_percentage = amount_percentage.strip('%')
     percentage = float(amount_percentage) / 100
-    token = server.firebase_utils.get_token(symbol)
-    address = token['address']
-    balance = blockchain.web3_utils.get_balanceOf(address, public_key)
+    if symbol == 'ETH':
+        balance = blockchain.web3_utils.get_eth_balance(public_key)
+    else:
+        token = server.firebase_utils.get_token(symbol)
+        address = token['address']
+        balance = blockchain.web3_utils.get_balanceOf(address, public_key)
 
     amount = round(float(balance) * percentage,18)
     return amount

@@ -74,6 +74,9 @@ def get_decimal(token_address):
     return decimal
 
 def get_balanceOf(address, public_key):
+    if address == '0x0000000000000000000000000000000000000000':
+        balance_in_ether = get_eth_balance(public_key)
+        return balance_in_ether
     contract = web3.eth.contract(address=address, abi=WETH_ABI)
 
     balance = contract.functions.balanceOf(public_key).call()
