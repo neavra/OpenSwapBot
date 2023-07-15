@@ -75,12 +75,15 @@ async def select_transfer_amount(update: Update, context: CallbackContext):
     return ROUTE
 
 async def select_transfer_address(update: Update, context: CallbackContext):
-    # query= update.callback_query 
-    # await query.answer()
-    # callback_data = query.data
-    # amount_percentage = callback_data.split("_")[-1]
-    # # THis method should be extensible to buy and sell amount
-    # amount = calculate_amount(amount_percentage, token["address"], public_key)
+    query= update.callback_query 
+    await query.answer()
+    callback_data = query.data
+    amount_percentage = callback_data.split("_")[-1]
+    symbol = context.user_data['symbol']
+    public_key = context.user_data['public_key']
+    # THis method should be extensible to buy and sell amount
+    amount = await calculate_amount(amount_percentage, symbol, public_key)
+    context.user_data['amount'] = amount
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -96,7 +99,7 @@ async def transfer_tokens_confirmation(update: Update, context: CallbackContext)
     token = server.firebase_utils.get_token(token_symbol)
     user_id = context.user_data['user_id']
 
-    amount = 0.001
+    amount = context.user_data['amount']
     
     keyboard = [
         [InlineKeyboardButton("Confirm", callback_data="transfer_tokens"),InlineKeyboardButton("< Back", callback_data="start")]
@@ -139,6 +142,8 @@ async def transfer_tokens(update: Update, context: CallbackContext):
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+    logger.info(f'Processing Order: {order}')
+
     try:
         tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'], order['token_address'])
         order['status'] = 'SUCCESSFUL'
@@ -172,3 +177,13 @@ async def transfer_tokens(update: Update, context: CallbackContext):
             reply_markup= reply_markup
         )
         return ROUTE
+    
+async def calculate_amount(amount_percentage, symbol, public_key):
+    amount_percentage = amount_percentage.strip('%')
+    percentage = float(amount_percentage) / 100
+    token = server.firebase_utils.get_token(symbol)
+    address = token['address']
+    balance = blockchain.web3_utils.get_balanceOf(address, public_key)
+
+    amount = round(float(balance) * percentage,18)
+    return amount

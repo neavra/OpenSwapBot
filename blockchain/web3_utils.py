@@ -276,9 +276,6 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
 async def transfer_token(from_address, to_address, amount, private_key, token_address = None):
     wei_amount = web3.to_wei(amount, 'ether')
     if token_address == None:
-        # Get the nonce of the sender address
-        nonce = web3.eth.get_transaction_count(from_address)
-
         # Create a transaction object
         transaction = {
             'to': to_address,
@@ -293,6 +290,13 @@ async def transfer_token(from_address, to_address, amount, private_key, token_ad
 
         # Send the signed transaction
         tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt['status']:
+            logger.info('Transfer Successful!')
+            return tx_hash
+        else:
+            logger.info('Transfer failed.')
     else:
         # Load the token contract using its address
         token_contract = web3.eth.contract(address=token_address, abi=ERC20_ABI)
@@ -314,5 +318,10 @@ async def transfer_token(from_address, to_address, amount, private_key, token_ad
 
         # Send the signed transaction
         tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
-    return tx_hash
+        if receipt['status']:
+            logger.info('Transfer Successful!')
+            return tx_hash
+        else:
+            logger.info('Transfer failed.')
