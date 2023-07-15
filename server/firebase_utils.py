@@ -22,23 +22,20 @@ def get_user_address(user_id):
     # Get the document for the specified chat_id
     doc_ref = db.collection(collection_name).document(str(user_id))
     doc_snapshot = doc_ref.get()
+    doc_ref = db.collection(collection_name).where("userId", "==", str(user_id))
+    doc_snapshots = doc_ref.get()
 
-    # Check if the document exists
-    if doc_snapshot.exists:
+    public_keys = []
+
+    # Iterate over the document snapshots
+    for doc_snapshot in doc_snapshots:
         # Get the data from the document
         data = doc_snapshot.to_dict()
+        if "publicKey" in data:
+            public_key = data["publicKey"]
+            public_keys.append(public_key)
 
-        # Get the addresses associated with the user
-        publicKey = data.get("publicKey", [])
-        privateKey = data.get("privateKey")
-
-
-        # Return the addresses
-        return [publicKey, privateKey]
-
-    else:
-        # Document not found
-        return []
+    return public_keys
 
 def get_private_key(public_key):
     # Access the Firestore database
@@ -64,11 +61,16 @@ def insert_user_address(user_id, user_handle, public_key, private_key):
     # Initialize Firestore database
     db = firestore.client()
 
+    user = get_user(user_id)
+    wallet_count = user['walletCount']
+    wallet_count += 1
+
     # Define the document reference using the user ID
-    doc_ref = db.collection('addresses').document(str(user_id))
+    doc_ref = db.collection('addresses').document(str(user_id)+'_'+str(wallet_count))
 
     # Create the data to be inserted
     data = {
+        'userId': str(user_id),
         'userHandle': user_handle,
         'publicKey': public_key,
         'privateKey': private_key
@@ -76,6 +78,9 @@ def insert_user_address(user_id, user_handle, public_key, private_key):
 
     # Insert the data into the document
     doc_ref.set(data)
+
+    user['walletCount'] = wallet_count
+    update_user(user_id,user)
 
 def get_tokens():
     # Access the Firestore database
@@ -163,3 +168,47 @@ def insert_order(order):
     order['inserted_at'] = datetime.datetime.now()
 
     doc_ref.set(order)
+
+def get_user(user_id):
+    # Access the Firestore database
+    db = firestore.client()
+
+    # Collection name
+    collection_name = "users"
+
+    # Get the document for the specified chat_id
+    doc_ref = db.collection(collection_name).document(str(user_id))
+    doc_snapshot = doc_ref.get()
+
+    # Check if the document exists
+    if doc_snapshot.exists:
+        # Get the data from the document
+        data = doc_snapshot.to_dict()
+
+        return data
+
+def insert_new_user(user_id, user_handle):
+    # Initialize Firestore database
+    db = firestore.client()
+
+    # Define the document reference using the user ID
+    doc_ref = db.collection('users').document(str(user_id))
+
+    # Create the data to be inserted
+    data = {
+        'userId': str(user_id),
+        'userHandle': user_handle,
+        'walletCount': 0,
+    }
+
+    # Insert the data into the document
+    doc_ref.set(data)
+
+def update_user(user_id, user):
+    # Initialize Firestore database
+    db = firestore.client()
+
+    # Define the document reference using the user ID
+    doc_ref = db.collection('users').document(str(user_id))
+
+    doc_ref.set(user)

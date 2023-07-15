@@ -12,6 +12,7 @@ from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
 from transfer import (transfer_tokens_options, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
+from wallet import (import_wallet_options, import_wallet)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -26,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION = range(5)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET = range(6)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -49,20 +50,33 @@ async def start(update: Update, context: CallbackContext):
     context.user_data['user_id'] = user_id
 
     gas_fee, block_number = blockchain.web3_utils.get_ethereum_data()
-    address = server.firebase_utils.get_user_address(user_id)
+    addresses = server.firebase_utils.get_user_address(user_id)
 
-    if not address:
+    if not addresses:
         # Onboard new user
-        new_public_key, new_private_key = blockchain.web3_utils.create_wallet()
-        server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
-        address = server.firebase_utils.get_user_address(user_id)
+        await onboard_user(user_id, user_handle)
+        addresses = server.firebase_utils.get_user_address(user_id)
 
-    public_key = address[0]
+    public_key = addresses[0]
     context.user_data['public_key'] = public_key
 
-    balance = blockchain.web3_utils.get_eth_balance(public_key)
-    transaction = blockchain.web3_utils.get_nonce(public_key)
+    message = (
+        f"Current Gas Fees: {gas_fee} gwei\n"
+        f"Current Block Number: {block_number}\n"
+        "═══ Your Wallets ═══\n"
+    )
+    count = 1
+    for public_key in addresses:
+        balance = blockchain.web3_utils.get_eth_balance(public_key)
+        transaction = blockchain.web3_utils.get_nonce(public_key)
+        message += (f"▰ Wallet - w{count} ▰\n"
+        f"Balance: "
+        f"{balance} ETH\n"
+        f"Transactions: "
+        f"{transaction}\n"
+        f"Address: {public_key}\n\n")
 
+        count += 1
     keyboard = [
         [
             InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),
@@ -74,21 +88,12 @@ async def start(update: Update, context: CallbackContext):
         ],
         [
             InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens_options")
+        ],
+        [
+            InlineKeyboardButton("Import Wallet", callback_data="import_wallet_options")
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    message = f"""
-    Current Gas Fees: {gas_fee} gwei
-    Current Block Number: {block_number}
-    ═══ Your Wallets ═══
-    ▰ Wallet - w1
-    Balance:
-    {balance} ETH
-    Transactions:
-    {transaction}
-    Address: {public_key}
-    """
 
     await context.bot.send_message(
                 chat_id=update.effective_chat.id, 
@@ -97,6 +102,11 @@ async def start(update: Update, context: CallbackContext):
                 reply_markup=reply_markup
             )
     return ROUTE
+
+async def onboard_user(user_id, user_handle):
+    new_public_key, new_private_key = blockchain.web3_utils.create_wallet()
+    server.firebase_utils.insert_new_user(user_id, user_handle)    
+    server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
 
 async def view_token_balances(update: Update, context: CallbackContext):
     tokens = server.firebase_utils.get_tokens()
@@ -181,6 +191,7 @@ def main():
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_75%$"),
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_100%$"),
                 CallbackQueryHandler(transfer_tokens, pattern = "^transfer_tokens$"),
+                CallbackQueryHandler(import_wallet_options, pattern = "^import_wallet_options$"),
 
             },
             BUY_TOKENS_CONFIRMATION: {
@@ -215,6 +226,10 @@ def main():
             TRANSFER_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),
                 MessageHandler(filters.TEXT, transfer_tokens_confirmation),
+            },
+            IMPORT_WALLET: {
+                CommandHandler('start', start),
+                MessageHandler(filters.TEXT, import_wallet),
             }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]
