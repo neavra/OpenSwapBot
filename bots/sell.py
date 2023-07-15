@@ -75,7 +75,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         )
         return SELL_TOKENS_CONFIRMATION
     
-    address = server.firebase_utils.get_user_address(user_id)
+    public_key = context.user_data['public_key']
 
     token_out_symbol = blockchain.web3_utils.get_symbol(WETH_ADDRESS)
     
@@ -91,8 +91,7 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         'token_out': WETH_ADDRESS,
         'token_in_symbol': token_in_symbol,
         'token_out_symbol': token_out_symbol,
-        'public_key': address[0],
-        'private_key': address[1],
+        'public_key': public_key,
         'path_bytes': path_bytes,
         'status': 'PENDING'
     }
@@ -156,7 +155,8 @@ async def sell_tokens(update: Update, context: CallbackContext):
     order = context.user_data['order']
     logger.info(f'Processing Order: {order}')
     try:
-        receipt = await blockchain.web3_utils.swap_token(order['token_in'], order['token_out'], order['public_key'], order['private_key'], order['amount_in'])
+        private_key = server.firebase_utils.get_private_key(order['public_key'])
+        receipt = await blockchain.web3_utils.swap_token(order['token_in'], order['token_out'], order['public_key'], private_key, order['amount_in'])
         tx_hash = receipt['transactionHash'].hex()
     
         amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])

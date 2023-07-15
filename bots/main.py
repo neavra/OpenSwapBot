@@ -49,20 +49,33 @@ async def start(update: Update, context: CallbackContext):
     context.user_data['user_id'] = user_id
 
     gas_fee, block_number = blockchain.web3_utils.get_ethereum_data()
-    address = server.firebase_utils.get_user_address(user_id)
+    addresses = server.firebase_utils.get_user_address(user_id)
 
-    if not address:
+    if not addresses:
         # Onboard new user
-        new_public_key, new_private_key = blockchain.web3_utils.create_wallet()
-        server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
-        address = server.firebase_utils.get_user_address(user_id)
+        await onboard_user(user_id, user_handle)
+        addresses = server.firebase_utils.get_user_address(user_id)
 
-    public_key = address[0]
+    public_key = addresses[0]
     context.user_data['public_key'] = public_key
 
-    balance = blockchain.web3_utils.get_eth_balance(public_key)
-    transaction = blockchain.web3_utils.get_nonce(public_key)
+    message = (
+        f"Current Gas Fees: {gas_fee} gwei\n"
+        f"Current Block Number: {block_number}\n"
+        "═══ Your Wallets ═══\n"
+    )
+    count = 1
+    for public_key in addresses:
+        balance = blockchain.web3_utils.get_eth_balance(public_key)
+        transaction = blockchain.web3_utils.get_nonce(public_key)
+        message += (f"▰ Wallet - w{count} ▰\n"
+        f"Balance: "
+        f"{balance} ETH\n"
+        f"Transactions: "
+        f"{transaction}\n"
+        f"Address: {public_key}\n\n")
 
+        count += 1
     keyboard = [
         [
             InlineKeyboardButton("Buy Tokens", callback_data="buy_tokens_options"),
@@ -78,18 +91,6 @@ async def start(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    message = f"""
-    Current Gas Fees: {gas_fee} gwei
-    Current Block Number: {block_number}
-    ═══ Your Wallets ═══
-    ▰ Wallet - w1
-    Balance:
-    {balance} ETH
-    Transactions:
-    {transaction}
-    Address: {public_key}
-    """
-
     await context.bot.send_message(
                 chat_id=update.effective_chat.id, 
                 text=message, 
@@ -97,6 +98,11 @@ async def start(update: Update, context: CallbackContext):
                 reply_markup=reply_markup
             )
     return ROUTE
+
+async def onboard_user(user_id, user_handle):
+    new_public_key, new_private_key = blockchain.web3_utils.create_wallet()
+    server.firebase_utils.insert_new_user(user_id, user_handle)    
+    server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
 
 async def view_token_balances(update: Update, context: CallbackContext):
     tokens = server.firebase_utils.get_tokens()

@@ -94,7 +94,6 @@ async def select_transfer_address(update: Update, context: CallbackContext):
 
 async def transfer_tokens_confirmation(update: Update, context: CallbackContext):
     public_key = context.user_data['public_key']
-    private_key = server.firebase_utils.get_private_key(public_key)
     to_address = update.message.text
     token_symbol =  context.user_data['symbol']
     token = server.firebase_utils.get_token(token_symbol)
@@ -120,7 +119,6 @@ async def transfer_tokens_confirmation(update: Update, context: CallbackContext)
         'token_symbol': token_symbol,
         'from_address': public_key,
         'to_address': to_address,
-        'private_key': private_key,
         'status': 'PENDING',
     }
     context.user_data['order'] = order
@@ -146,10 +144,12 @@ async def transfer_tokens(update: Update, context: CallbackContext):
     logger.info(f'Processing Order: {order}')
 
     try:
+        public_key = context.user_data['public_key']
+        private_key = server.firebase_utils.get_private_key(public_key)
         if order['token_address'] == "0x0000000000000000000000000000000000000000":
-            tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'])
+            tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], private_key)
         else:
-            tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], order['private_key'], order['token_address'])
+            tx_hash = await blockchain.web3_utils.transfer_token(order['from_address'], order['to_address'], order['amount'], private_key, order['token_address'])
         order['status'] = 'SUCCESSFUL'
         order['tx_hash'] = tx_hash
         server.firebase_utils.insert_order(order)
