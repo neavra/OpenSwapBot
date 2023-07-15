@@ -41,7 +41,7 @@ def get_ethereum_data():
 def create_wallet():
     priv = secrets.token_hex(32)
     private_key = "0x" + priv
-    public_key = Account.from_key(private_key)
+    public_key = Account.from_key(private_key).address
     return public_key, private_key
 
 def derive_public_key(private_key):
