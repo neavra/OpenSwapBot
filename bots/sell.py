@@ -51,9 +51,9 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
 
-    [amount_in, slippage] = await validate_options_input(amount_states, slippage_states)
+    [amount_in, slippage, e] = await validate_options_input(amount_states, slippage_states)
 
-    if  amount_in == 0 or slippage == 0:
+    if  e != '':
         keyboard = [
             [InlineKeyboardButton("< Back", callback_data="sell_tokens_options")]
         ]
@@ -61,14 +61,14 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text =f"Please select an amount and slippage",
+        text =f"Error: {e}",
         reply_markup= reply_markup
         )
         return ROUTE
 
-    [token_in, token_in_symbol] = await validate_token_input(token_in)
+    [token_in, token_in_symbol, e] = await validate_token_input(token_in)
 
-    if token_in == "":
+    if e != "":
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text =f"Could not identify the token, please input the token contract",
