@@ -64,6 +64,7 @@ async def toggle(update: Update, context: CallbackContext):
             InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
             InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
             InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
+            InlineKeyboardButton("Auto", callback_data="slippage_0"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
@@ -172,10 +173,10 @@ async def init_keyboard_dict(type, context):
         ],
         [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
+            InlineKeyboardButton("5%", callback_data="slippage_5"),
             InlineKeyboardButton("10%", callback_data="slippage_10"),
             InlineKeyboardButton("20%", callback_data="slippage_20"),
-            InlineKeyboardButton("30%", callback_data="slippage_30"),
-
+            InlineKeyboardButton("Auto", callback_data="slippage_0"),
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
@@ -196,6 +197,7 @@ async def edit_keyboard(type, context, custom_amount):
             InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
             InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
             InlineKeyboardButton(f'30% {emoji["slippage_30"]}', callback_data="slippage_30"),
+            InlineKeyboardButton("Auto", callback_data="slippage_0"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
