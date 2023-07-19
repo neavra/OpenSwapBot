@@ -227,6 +227,11 @@ async def get_swap_quote(path, amount_in):
 
     return quote_amount
 
+async def calculate_slippage(amount_out, slippage):
+    # E.g. If slippage is 10%, amount out min is amount_out * 0.90
+    amount_out_min = amount_out * (1-slippage)
+    return amount_out_min
+
 async def swap_token(token_in, token_out, public_key, private_key, amount_in):
 
     if token_in == WETH_ADDRESS:
