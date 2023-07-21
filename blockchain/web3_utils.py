@@ -231,10 +231,12 @@ async def get_swap_quote(path, amount_in):
 
 async def calculate_slippage(amount_out, slippage):
     # E.g. If slippage is 10%, amount out min is amount_out * 0.90
-    amount_out_min = amount_out * (1-slippage)
+    slippage_percent = slippage/100
+    amount_out_min = float(amount_out) * (1-slippage_percent)
+
     return amount_out_min
 
-async def swap_token(token_in, token_out, public_key, private_key, amount_in):
+async def swap_token(token_in, token_out, public_key, private_key, amount_in, amount_out_min):
 
     if token_in == WETH_ADDRESS:
         wrap_eth(amount_in, public_key, private_key)
@@ -246,9 +248,8 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
     logger.info("Executing Swap")
     uniswap_router = web3.eth.contract(address=UNISWAP_ROUTER_ADDRESS, abi=UNISWAP_ROUTER_ABI)
 
-    # Set the amount of ETH you want to swap and the desired minimum amount of target token to receive
-    eth_amount = web3.to_wei(amount_in, 'ether')
-    min_token_amount = 0  # Future logic for calculating slippage and getting quote
+    eth_amount_in = web3.to_wei(amount_in, 'ether')
+    eth_amout_out_min = web3.to_wei(amount_out_min, 'ether')
 
     # Get the path for the swap (ETH to target token)
     path = [token_in, token_out]
@@ -256,7 +257,7 @@ async def swap_token(token_in, token_out, public_key, private_key, amount_in):
     path_bytes = encode_path(path, fees, True)
 
     deadline = web3.eth.get_block('latest')['timestamp'] + 60
-    swap_data = uniswap_router.encodeABI(fn_name='exactInput', args=[(path_bytes, public_key, deadline, eth_amount, min_token_amount)])
+    swap_data = uniswap_router.encodeABI(fn_name='exactInput', args=[(path_bytes, public_key, deadline, eth_amount_in, eth_amout_out_min)])
 
     transaction = {
         'to': UNISWAP_ROUTER_ADDRESS,
@@ -316,6 +317,25 @@ async def swap_exact_tokens_for_tokens(token_in, token_out, public_key, private_
         'nonce': web3.eth.get_transaction_count(public_key),
         'data': swap_data
     }
+    try:
+        # Sign and send the transaction
+        signed_txn = web3.eth.account.sign_transaction(transaction, private_key=private_key)
+        tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
+        # Wait for the transaction to be mined
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Check the transaction status
+        if receipt['status']:
+            if token_out == WETH_ADDRESS:
+                amount = get_balanceOf(WETH_ADDRESS, public_key)
+                unwrap_tx_hash = unwrap_eth(amount, public_key,private_key)
+                logger.info(f'Unwrap Succesful! {unwrap_tx_hash}')
+            logger.info(f'Swap successful! {tx_hash}')
+            return receipt
+        else:
+            logger.info('Swap failed.')
+    except Exception as e:
+        logger.info(f'An error occurred: {e}')
 
 async def transfer_token(from_address, to_address, amount, private_key, token_address = None):
     wei_amount = web3.to_wei(amount, 'ether')
