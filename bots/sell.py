@@ -82,23 +82,27 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
     path = [token_in, WETH_ADDRESS]
     path_bytes = blockchain.web3_utils.encode_path(path, FEES, True)
 
-    order = {
-        'user_id': user_id,
-        'type': 'Sell',
-        'amount_in': amount_in,
-        'slippage': slippage,
-        'token_in': token_in,
-        'token_out': WETH_ADDRESS,
-        'token_in_symbol': token_in_symbol,
-        'token_out_symbol': token_out_symbol,
-        'public_key': public_key,
-        'path_bytes': path_bytes,
-        'status': 'PENDING'
-    }
-    context.user_data['order'] = order
+    
 
     try:
-        amount_out = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
+        amount_out_quote = await blockchain.web3_utils.get_swap_quote(path_bytes, amount_in)
+        amount_out_min = await blockchain.web3_utils.calculate_slippage(amount_out_quote, slippage)
+
+        order = {
+            'user_id': user_id,
+            'type': 'Sell',
+            'amount_in': amount_in,
+            'amount_out_min': amount_out_min,
+            'slippage': slippage,
+            'token_in': token_in,
+            'token_out': WETH_ADDRESS,
+            'token_in_symbol': token_in_symbol,
+            'token_out_symbol': token_out_symbol,
+            'public_key': public_key,
+            'path_bytes': path_bytes,
+            'status': 'PENDING'
+        }
+        context.user_data['order'] = order
 
         keyboard = [
             [InlineKeyboardButton("Confirm", callback_data="sell_tokens"),InlineKeyboardButton("< Back", callback_data="start")]
@@ -107,8 +111,9 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
 
         message = (
         "Please confirm your order:\n"
-        f"Swap {round(amount_in,5)} of {token_in_symbol} for (estimated) {round(amount_out,5)} of {token_out_symbol}\n"
-        f"Slippage: {slippage}"
+        f"Swap {round(amount_in,5)} of {token_in_symbol} for (estimated) {round(amount_out_quote,5)} of {token_out_symbol}\n"
+        f"Slippage: {slippage}\n"
+        f"Minimum Amout Received: {round(amount_out_min,8)}"
         )
 
         await context.bot.send_message(
@@ -156,7 +161,7 @@ async def sell_tokens(update: Update, context: CallbackContext):
     logger.info(f'Processing Order: {order}')
     try:
         private_key = server.firebase_utils.get_private_key(order['public_key'])
-        receipt = await blockchain.web3_utils.swap_token(order['token_in'], order['token_out'], order['public_key'], private_key, order['amount_in'])
+        receipt = await blockchain.web3_utils.swap_token(order['token_in'], order['token_out'], order['public_key'], private_key, order['amount_in'], order['amount_out_min'])
         tx_hash = receipt['transactionHash'].hex()
     
         amount_out = blockchain.web3_utils.parse_swap_receipt(receipt, order['token_out'], order['public_key'])
