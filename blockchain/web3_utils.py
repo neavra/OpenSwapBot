@@ -231,7 +231,10 @@ async def get_swap_quote(path, amount_in):
 
 async def calculate_slippage(amount_out, slippage):
     # E.g. If slippage is 10%, amount out min is amount_out * 0.90
-    slippage_percent = slippage/100
+    if slippage == 'auto':
+        slippage_percent = 0.05
+    else:
+        slippage_percent = slippage/100
     amount_out_min = float(amount_out) * (1-slippage_percent)
 
     return amount_out_min
@@ -299,15 +302,15 @@ async def swap_exact_tokens_for_tokens(token_in, token_out, public_key, private_
     uniswap_router = web3.eth.contract(address=UNISWAP_ROUTER_V2_ADDRESS, abi=UNISWAP_ROUTER_V2_ABI)
 
     # Set the amount of ETH you want to swap and the desired minimum amount of target token to receive
-    eth_amount = web3.to_wei(amount_in, 'ether')
-    min_token_amount = 0  # Future logic for calculating slippage and getting quote
+    eth_amount_in = web3.to_wei(amount_in, 'ether')
+    eth_amout_out_min = web3.to_wei(amount_out_min, 'ether')
 
     # Get the path for the swap (ETH to target token)
     path = [token_in, token_out]
     fees = [3000]
     path_bytes = encode_path(path, fees, True)
 
-    swap_data = uniswap_router.encodeABI(fn_name='swapExactTokensForTokens', args=[(amount_in, amount_out_min, path_bytes, public_key)])
+    swap_data = uniswap_router.encodeABI(fn_name='swapExactTokensForTokens', args=[(eth_amount_in, eth_amout_out_min, path_bytes, public_key)])
 
     transaction = {
         'to': UNISWAP_ROUTER_ADDRESS,

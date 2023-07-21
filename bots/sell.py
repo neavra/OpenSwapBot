@@ -112,8 +112,6 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         message = (
         "Please confirm your order:\n"
         f"Swap {round(amount_in,5)} of {token_in_symbol} for (estimated) {round(amount_out_quote,5)} of {token_out_symbol}\n"
-        f"Slippage: {slippage}\n"
-        f"Minimum Amout Received: {round(amount_out_min,8)}"
         )
 
         await context.bot.send_message(

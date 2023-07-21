@@ -64,7 +64,7 @@ async def toggle(update: Update, context: CallbackContext):
             InlineKeyboardButton(f'5% {emoji["slippage_5"]}', callback_data="slippage_5"),
             InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
             InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
-            InlineKeyboardButton(f'Auto {emoji["slippage_0"]}', callback_data="slippage_0"),
+            InlineKeyboardButton(f'Auto {emoji["slippage_auto"]}', callback_data="slippage_auto"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
@@ -148,7 +148,7 @@ async def init_keyboard_dict(type, context):
         'amount_custom': False,
     }
     slippage_states= {
-        'slippage_0' : False,
+        'slippage_auto' : False,
         'slippage_5' : False,
         'slippage_10' : False,
         'slippage_20' : False,
@@ -157,7 +157,7 @@ async def init_keyboard_dict(type, context):
         'amount_0.001' : '',
         'amount_0.002' : '',
         'amount_custom': '',
-        'slippage_0' : '',
+        'slippage_auto' : '',
         'slippage_5' :  '',
         'slippage_10' :  '',
         'slippage_20' :  '',
@@ -178,7 +178,7 @@ async def init_keyboard_dict(type, context):
             InlineKeyboardButton("5%", callback_data="slippage_5"),
             InlineKeyboardButton("10%", callback_data="slippage_10"),
             InlineKeyboardButton("20%", callback_data="slippage_20"),
-            InlineKeyboardButton("Auto", callback_data="slippage_0"),
+            InlineKeyboardButton("Auto", callback_data="slippage_auto"),
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
     ]
@@ -199,7 +199,7 @@ async def edit_keyboard(type, context, custom_amount):
             InlineKeyboardButton(f'5% {emoji["slippage_5"]}', callback_data="slippage_5"),
             InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
             InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
-            InlineKeyboardButton("Auto", callback_data="slippage_0"),
+            InlineKeyboardButton("Auto", callback_data="slippage_auto"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]

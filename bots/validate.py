@@ -26,10 +26,14 @@ async def validate_options_input(amount_states, slippage_states):
     try:
         for key, value in amount_states.items():
             if value == True:
-                amount_in = float(key.split('_')[-1])
+                val = key.split('_')[-1]
+                amount_in = float(val)
         for key, value in slippage_states.items():
             if value == True:
-                slippage = float(key.split('_')[-1])
+                val = key.split('_')[-1]
+                if val =='auto':
+                    val = 5
+                slippage = float(val)
 
         if amount_in == 0:
             raise ValueError("Amount is not selected")
