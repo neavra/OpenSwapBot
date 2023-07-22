@@ -7,7 +7,7 @@ from telegram import (
 from telegram.ext import (
     CallbackContext
 )
-from toggle_keyboard import (init_keyboard_dict)
+from toggle_keyboard import (init_keyboard)
 from validate import (validate_options_input, validate_token_input)
 sys.path.append("../")
 
@@ -28,7 +28,7 @@ FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
 async def buy_tokens_options(update: Update, context: CallbackContext):
-    keyboard = await init_keyboard_dict("Buy", context)
+    keyboard = await init_keyboard("Buy", context)
     reply_markup = InlineKeyboardMarkup(keyboard)
     keyboard_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,

@@ -8,7 +8,8 @@ from telegram.ext import (
     CallbackContext
 )
 
-sys.path.append("../")
+sys.path.append("./")
+import server.firebase_utils
 
 load_dotenv()
 
@@ -52,7 +53,7 @@ async def toggle(update: Update, context: CallbackContext):
         emoji = await emote(callback_data, emoji, slippage_states)
     context.user_data["emoji"] = emoji
 
-    keyboard = await edit_keyboard(type, context, custom_amount)
+    keyboard = await generate_keyboard(context)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Deals with the case where custom amount is selected
@@ -99,7 +100,7 @@ async def custom_amount(update: Update, context: CallbackContext):
         del amount_states['amount_custom']
 
         amount_states[f'amount_{custom_amount}'] = True
-        keyboard = await edit_keyboard(type,context,custom_amount)
+        keyboard = await generate_keyboard(context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await keyboard_message.edit_text(
@@ -116,7 +117,7 @@ async def custom_amount(update: Update, context: CallbackContext):
         elif type == "Buy":
             return BUY_TOKENS_CONFIRMATION
 
-    keyboard = await edit_keyboard(type, context, custom_amount)
+    keyboard = await generate_keyboard(context)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await keyboard_message.edit_text(
@@ -126,7 +127,21 @@ async def custom_amount(update: Update, context: CallbackContext):
     
     return CUSTOM_AMOUNT
 
-async def init_keyboard_dict(type, context):
+async def init_keyboard(type, context):
+    user_id = context.user_data['user_id']
+    wallet_count = server.firebase_utils.get_user(user_id)["walletCount"]
+
+    context.user_data['wallet_count'] = wallet_count
+    context.user_data['custom_amount'] = "--"
+    context.user_data["type"] = type
+
+    await init_keyboard_states(context)
+    keyboard = await generate_keyboard(context)
+    return keyboard
+
+async def init_keyboard_states(context):
+    wallet_count = context.user_data['wallet_count']
+
     amount_states = {
         'amount_0.001' : False,
         'amount_0.002' : False,
@@ -147,18 +162,27 @@ async def init_keyboard_dict(type, context):
         'slippage_10' :  '',
         'slippage_20' :  '',
     }
-    context.user_data["amount_states"] = amount_states
-    context.user_data['custom_amount'] = "--"
-    context.user_data["slippage_states"] = slippage_states
-    context.user_data["emoji"] = emoji
-    context.user_data["type"] = type
-    keyboard = await edit_keyboard(type, context, "--")
-    return keyboard
+    wallet_states = {f'wallet_{i+1}': False for i in range(wallet_count)}
 
-async def edit_keyboard(type, context, custom_amount):
+    context.user_data["amount_states"] = amount_states
+    context.user_data["slippage_states"] = slippage_states
+    context.user_data["wallet_states"] = wallet_states
+    context.user_data["emoji"] = emoji
+
+async def generate_keyboard(context):
     type = context.user_data["type"]
+    custom_amount = context.user_data["custom_amount"]
     emoji = context.user_data["emoji"]
+    wallet_states = context.user_data["wallet_states"]
+
+    wallet_buttons = [
+        InlineKeyboardButton(f'w{wallet_id[-1]}', callback_data=f"{wallet_id}")
+        for wallet_id in wallet_states.keys()
+    ]
+    # keyboard += wallet_buttons
     keyboard = [
+        [InlineKeyboardButton(f"Wallet", callback_data="empty")],
+        []+wallet_buttons,
         [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
         [
             InlineKeyboardButton(f'0.001 {emoji["amount_0.001"]}', callback_data="amount_0.001"),
