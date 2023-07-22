@@ -36,7 +36,7 @@ async def emote(callback_data, emoji, states):
     return emoji
 
 async def toggle(update: Update, context: CallbackContext):
-    custom_amount = "--"
+    custom_amount = context.user_data["custom_amount"]
     query= update.callback_query 
     await query.answer()
     callback_data = query.data
@@ -52,23 +52,7 @@ async def toggle(update: Update, context: CallbackContext):
         emoji = await emote(callback_data, emoji, slippage_states)
     context.user_data["emoji"] = emoji
 
-    keyboard = [
-        [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
-        [
-            InlineKeyboardButton(f'0.001 {emoji["amount_0.001"]}', callback_data="amount_0.001"),
-            InlineKeyboardButton(f'0.002 {emoji["amount_0.002"]}', callback_data="amount_0.002"),
-            InlineKeyboardButton(f'Custom: {custom_amount} {emoji["amount_custom"]}', callback_data="amount_custom"),
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="empty")],
-        [
-            InlineKeyboardButton(f'5% {emoji["slippage_5"]}', callback_data="slippage_5"),
-            InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
-            InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
-            InlineKeyboardButton(f'Auto {emoji["slippage_auto"]}', callback_data="slippage_auto"),
-
-        ],
-        [InlineKeyboardButton("< Back", callback_data="start")]
-    ]
+    keyboard = await edit_keyboard(type, context, custom_amount)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Deals with the case where custom amount is selected
@@ -103,7 +87,7 @@ async def custom_amount(update: Update, context: CallbackContext):
     emoji = context.user_data["emoji"]
 
     if update.callback_query:
-        custom_amount = "--"
+        custom_amount = context.user_data["custom_amount"]
         query = update.callback_query
         await query.answer()
         callback_data = query.data
@@ -111,6 +95,7 @@ async def custom_amount(update: Update, context: CallbackContext):
         context.user_data["emoji"] = emoji
     if update.message:
         custom_amount = update.message.text
+        context.user_data['custom_amount'] = custom_amount
         del amount_states['amount_custom']
 
         amount_states[f'amount_{custom_amount}'] = True
@@ -148,7 +133,7 @@ async def init_keyboard_dict(type, context):
         'amount_custom': False,
     }
     slippage_states= {
-        'slippage_auto' : False,
+        'slippage_auto' : True,
         'slippage_5' : False,
         'slippage_10' : False,
         'slippage_20' : False,
@@ -157,31 +142,17 @@ async def init_keyboard_dict(type, context):
         'amount_0.001' : '',
         'amount_0.002' : '',
         'amount_custom': '',
-        'slippage_auto' : '',
+        'slippage_auto' : '\u2705',
         'slippage_5' :  '',
         'slippage_10' :  '',
         'slippage_20' :  '',
     }
     context.user_data["amount_states"] = amount_states
+    context.user_data['custom_amount'] = "--"
     context.user_data["slippage_states"] = slippage_states
     context.user_data["emoji"] = emoji
     context.user_data["type"] = type
-    keyboard = [
-        [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
-        [
-            InlineKeyboardButton("0.001", callback_data="amount_0.001"),
-            InlineKeyboardButton("0.002", callback_data="amount_0.002"),
-            InlineKeyboardButton("Custom: --", callback_data="amount_custom"),
-        ],
-        [InlineKeyboardButton("Slippage", callback_data="empty")],
-        [
-            InlineKeyboardButton("5%", callback_data="slippage_5"),
-            InlineKeyboardButton("10%", callback_data="slippage_10"),
-            InlineKeyboardButton("20%", callback_data="slippage_20"),
-            InlineKeyboardButton("Auto", callback_data="slippage_auto"),
-        ],
-        [InlineKeyboardButton("< Back", callback_data="start")]
-    ]
+    keyboard = await edit_keyboard(type, context, "--")
     return keyboard
 
 async def edit_keyboard(type, context, custom_amount):
@@ -190,16 +161,16 @@ async def edit_keyboard(type, context, custom_amount):
     keyboard = [
         [InlineKeyboardButton(f"{type} Amount", callback_data="empty")],
         [
-            InlineKeyboardButton(f'0.001', callback_data="amount_0.001"),
-            InlineKeyboardButton(f'0.002', callback_data="amount_0.002"),
-            InlineKeyboardButton(f'Custom: {custom_amount} \u2705', callback_data="amount_custom"),
+            InlineKeyboardButton(f'0.001 {emoji["amount_0.001"]}', callback_data="amount_0.001"),
+            InlineKeyboardButton(f'0.002 {emoji["amount_0.002"]}', callback_data="amount_0.002"),
+            InlineKeyboardButton(f'Custom: {custom_amount} {emoji["amount_custom"]}', callback_data="amount_custom"),
         ],
         [InlineKeyboardButton("Slippage", callback_data="empty")],
         [
             InlineKeyboardButton(f'5% {emoji["slippage_5"]}', callback_data="slippage_5"),
             InlineKeyboardButton(f'10% {emoji["slippage_10"]}', callback_data="slippage_10"),
             InlineKeyboardButton(f'20% {emoji["slippage_20"]}', callback_data="slippage_20"),
-            InlineKeyboardButton("Auto", callback_data="slippage_auto"),
+            InlineKeyboardButton(f'Auto {emoji["slippage_auto"]}', callback_data="slippage_auto"),
 
         ],
         [InlineKeyboardButton("< Back", callback_data="start")]
