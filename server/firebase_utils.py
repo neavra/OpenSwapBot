@@ -12,7 +12,7 @@ SERVICE_ACCOUNT_PATH = os.getenv("SERVICE_ACCOUNT_PATH")
 cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
 app = firebase_admin.initialize_app(cred)
 
-def get_user_address(user_id):
+def get_user_addresses(user_id):
     # Access the Firestore database
     db = firestore.client()
 
@@ -36,6 +36,24 @@ def get_user_address(user_id):
             public_keys.append(public_key)
 
     return public_keys
+
+def get_user_address(user_id, wallet_nonce):
+    # Access the Firestore database
+    db = firestore.client()
+
+    # Collection name
+    collection_name = "addresses"
+
+    # Get the document for the specified chat_id
+    doc_ref = db.collection(collection_name).document(str(user_id)+'_'+str(wallet_nonce))
+    doc_snapshot = doc_ref.get()
+
+    # Check if the document exists
+    if doc_snapshot.exists:
+        # Get the data from the document
+        data = doc_snapshot.to_dict()["publicKey"]
+
+        return data
 
 def get_private_key(public_key):
     # Access the Firestore database

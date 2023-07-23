@@ -50,15 +50,12 @@ async def start(update: Update, context: CallbackContext):
     context.user_data['user_id'] = user_id
 
     gas_fee, block_number = blockchain.web3_utils.get_ethereum_data()
-    addresses = server.firebase_utils.get_user_address(user_id)
+    addresses = server.firebase_utils.get_user_addresses(user_id)
 
     if not addresses:
         # Onboard new user
         await onboard_user(user_id, user_handle)
-        addresses = server.firebase_utils.get_user_address(user_id)
-
-    public_key = addresses[0]
-    context.user_data['public_key'] = public_key
+        addresses = server.firebase_utils.get_user_addresses(user_id)
 
     message = (
         f"Current Gas Fees: {gas_fee} gwei\n"

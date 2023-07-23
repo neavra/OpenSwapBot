@@ -20,9 +20,10 @@ ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFE
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
-async def validate_options_input(amount_states, slippage_states):
+async def validate_options_input(amount_states, slippage_states, wallet_states):
     amount_in = 0
     slippage = 0
+    wallet_nonce = 0
     try:
         for key, value in amount_states.items():
             if value == True:
@@ -34,18 +35,23 @@ async def validate_options_input(amount_states, slippage_states):
                 if val =='auto':
                     val = 5
                 slippage = float(val)
-
+        for key, value in wallet_states.items():
+            if value ==True:
+                val = key.split('_')[-1]
+                wallet_nonce = val
         if amount_in == 0:
             raise ValueError("Amount is not selected")
         if slippage == 0:
             raise ValueError("Slippage is not selected")
-
+        if wallet_nonce == 0:
+            raise ValueError("Wallet is not selected")
         if amount_in <= 0:
             raise ValueError("Amount cannot be negative")
-        return [amount_in, slippage, '']
+        
+        return [amount_in, slippage, wallet_nonce, '']
     except Exception as e:
         logger.info(f'Error when validating options input: {e}')
-        return [0,0,e]
+        return [0,0,0,e]
 
 async def validate_token_input(token_input):
     # Deals with both Symbol and Contract case
@@ -74,7 +80,7 @@ async def validate_wallets_input(user_id ,private_key):
         else:
             public_key = blockchain.web3_utils.derive_public_key(private_key)
         # Check for repeated imports
-        addresses = server.firebase_utils.get_user_address(user_id)
+        addresses = server.firebase_utils.get_user_addresses(user_id)
         if public_key in [address for address in addresses]:
             raise ValueError("Wallet already exists")
         return [public_key, '']

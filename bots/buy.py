@@ -48,8 +48,10 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     token_out = update.message.text
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
+    wallet_states = context.user_data["wallet_states"]
 
-    [amount_in, slippage, e] = await validate_options_input(amount_states, slippage_states)
+    [amount_in, slippage, wallet_nonce, e] = await validate_options_input(amount_states, slippage_states, wallet_states)
+    public_key = server.firebase_utils.get_user_address(user_id, wallet_nonce)
 
     if  e != '':
         keyboard = [
@@ -65,7 +67,6 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         return ROUTE
     
     [token_out, token_out_symbol, e] = await validate_token_input(token_out)
-    
     if e != "":
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -73,7 +74,6 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
         )
         return BUY_TOKENS_CONFIRMATION
     
-    public_key = context.user_data['public_key']
 
     token_in_symbol = blockchain.web3_utils.get_symbol(WETH_ADDRESS)
     
@@ -106,6 +106,7 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
 
         message = (
         "Please confirm your order:\n"
+        f"Wallet selected: {public_key}\n"
         f"Swap {amount_in} of {token_in_symbol} for (estimated) {round(amount_out_quote,5)} of {token_out_symbol}\n"
         )
 
