@@ -44,13 +44,16 @@ async def toggle(update: Update, context: CallbackContext):
 
     amount_states = context.user_data["amount_states"]
     slippage_states = context.user_data["slippage_states"]
+    wallet_states = context.user_data["wallet_states"]
     type = context.user_data["type"]
     emoji = context.user_data["emoji"]
 
     if 'amount' in callback_data:
         emoji = await emote(callback_data, emoji, amount_states)
-    else:    
+    elif 'slippage' in callback_data:    
         emoji = await emote(callback_data, emoji, slippage_states)
+    elif 'wallet' in callback_data:
+        emoji = await emote(callback_data, emoji, wallet_states)
     context.user_data["emoji"] = emoji
 
     keyboard = await generate_keyboard(context)
@@ -163,6 +166,10 @@ async def init_keyboard_states(context):
         'slippage_20' :  '',
     }
     wallet_states = {f'wallet_{i+1}': False for i in range(wallet_count)}
+    wallet_emojis = {f'wallet_{i+1}': '' for i in range(wallet_count)}
+    wallet_states['wallet_1'] = True
+    wallet_emojis['wallet_1'] = '\u2705'
+    emoji = {**emoji, **wallet_emojis}
 
     context.user_data["amount_states"] = amount_states
     context.user_data["slippage_states"] = slippage_states
@@ -176,10 +183,9 @@ async def generate_keyboard(context):
     wallet_states = context.user_data["wallet_states"]
 
     wallet_buttons = [
-        InlineKeyboardButton(f'w{wallet_id[-1]}', callback_data=f"{wallet_id}")
+        InlineKeyboardButton(f'w{wallet_id[-1]} {emoji[f"{wallet_id}"]}', callback_data=f"{wallet_id}")
         for wallet_id in wallet_states.keys()
     ]
-    # keyboard += wallet_buttons
     keyboard = [
         [InlineKeyboardButton(f"Wallet", callback_data="empty")],
         []+wallet_buttons,
