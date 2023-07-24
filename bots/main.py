@@ -12,6 +12,7 @@ from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
 from transfer import (transfer_tokens_options, select_token, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
+from view_balance import (view_token_options, view_token_balances)
 from wallet import (import_wallet_options, import_wallet)
 sys.path.append("../")
 
@@ -105,61 +106,6 @@ async def onboard_user(user_id, user_handle):
     server.firebase_utils.insert_new_user(user_id, user_handle)    
     server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
 
-async def view_token_balances(update: Update, context: CallbackContext):
-    query= update.callback_query 
-    await query.answer()
-    callback_data = query.data
-    wallet_nonce = callback_data.split("_")[-1]
-    user_id = context.user_data["user_id"]
-    public_key = server.firebase_utils.get_user_address(user_id, wallet_nonce)
-    context.user_data['public_key'] = public_key
-
-    tokens = server.firebase_utils.get_tokens()
-    text = "These are your balances:\n"
-    for token in tokens:
-        symbol = token["symbol"]
-        balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
-        if balance != 0:
-            text += f'Symbol: {symbol}\nBalance: {round(balance,5)}\n'
-    # Handle no balances case
-    if text == "These are your balances:\n":
-        text = "You have no Available Balances!"
-
-    keyboard = [
-            [InlineKeyboardButton("< Back", callback_data="start")]
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup= reply_markup
-    )
-    return ROUTE
-
-async def view_token_options(update: Update, context: CallbackContext):
-    user_id = context.user_data["user_id"]
-    message = "Please Select Wallet"
-    wallet_buttons = []
-    wallet_count = server.firebase_utils.get_user(user_id)['walletCount']
-
-    for wallet in range(1, wallet_count + 1):
-        wallet_buttons.append(InlineKeyboardButton(f'w{wallet}', callback_data=f'wallet_view_{wallet}'))
-    
-    keyboard = [
-        []+wallet_buttons,
-        [InlineKeyboardButton("< Back", callback_data="start")],
-    ]
-        
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text = message,
-        reply_markup= reply_markup
-    )
-
-    return ROUTE
-
 async def list_popular_tokens(update: Update, context: CallbackContext):
     tokens = server.firebase_utils.get_tokens()
     text = "These are the tokens:\n"
@@ -205,8 +151,8 @@ def main():
             ROUTE: {
                 CommandHandler('start', start),
                 CallbackQueryHandler(start, pattern = "^start$"),
-                CallbackQueryHandler(view_token_balances, pattern="^wallet_view.*"),
                 CallbackQueryHandler(view_token_options, pattern = "^view_token_balances$"),
+                CallbackQueryHandler(view_token_balances, pattern="^wallet_view.*"),
                 CallbackQueryHandler(list_popular_tokens, pattern = "^list_popular_tokens$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
