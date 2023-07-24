@@ -11,7 +11,7 @@ from telegram.ext import (
 from toggle_keyboard import (toggle, custom_amount)
 from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
-from transfer import (transfer_tokens_options, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
+from transfer import (transfer_tokens_options, select_token, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
 from wallet import (import_wallet_options, import_wallet)
 sys.path.append("../")
 
@@ -182,6 +182,7 @@ def main():
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
                 CallbackQueryHandler(transfer_tokens_options, pattern = "^transfer_tokens_options$"),
+                CallbackQueryHandler(select_token, pattern="^wallet_.*"),
                 CallbackQueryHandler(select_transfer_amount, pattern="^select_transfer_amount.*"),
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_25%$"),
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_50%$"),

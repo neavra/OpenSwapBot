@@ -26,8 +26,42 @@ FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
 async def transfer_tokens_options(update: Update, context: CallbackContext):
-    public_key = context.user_data['public_key']
+    user_id = context.user_data["user_id"]
+    message = "Please Select Wallet"
+    wallet_buttons = []
+    wallet_count = server.firebase_utils.get_user(user_id)['walletCount']
 
+    for wallet in range(1, wallet_count + 1):
+        wallet_buttons.append(InlineKeyboardButton(f'w{wallet}', callback_data=f'wallet_{wallet}'))
+    
+    keyboard = [
+        []+wallet_buttons,
+        [InlineKeyboardButton("< Back", callback_data="start")],
+    ]
+        
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = message,
+        reply_markup= reply_markup
+    )
+
+    return ROUTE   
+ 
+async def select_token(update: Update, context: CallbackContext):
+    query= update.callback_query 
+    await query.answer()
+    callback_data = query.data
+    wallet_nonce = callback_data.split("_")[-1]
+    user_id = context.user_data["user_id"]
+    public_key = server.firebase_utils.get_user_address(user_id, wallet_nonce)
+    context.user_data['public_key'] = public_key
+    message = f"You have selected {public_key}"
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = message,
+    )
+ 
     message = "Please Select Token"
     keyboard = []
     tokens = server.firebase_utils.get_tokens()
@@ -48,8 +82,7 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
         text = message,
         reply_markup= reply_markup
     )
-
-    return ROUTE    
+    return ROUTE
 
 async def select_transfer_amount(update: Update, context: CallbackContext):
     query= update.callback_query 
