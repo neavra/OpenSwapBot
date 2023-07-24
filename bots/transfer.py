@@ -32,7 +32,7 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
     wallet_count = server.firebase_utils.get_user(user_id)['walletCount']
 
     for wallet in range(1, wallet_count + 1):
-        wallet_buttons.append(InlineKeyboardButton(f'w{wallet}', callback_data=f'wallet_{wallet}'))
+        wallet_buttons.append(InlineKeyboardButton(f'w{wallet}', callback_data=f'wallet_transfer_{wallet}'))
     
     keyboard = [
         []+wallet_buttons,

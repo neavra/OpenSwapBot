@@ -106,9 +106,16 @@ async def onboard_user(user_id, user_handle):
     server.firebase_utils.insert_user_address(user_id, user_handle, new_public_key, new_private_key)
 
 async def view_token_balances(update: Update, context: CallbackContext):
+    query= update.callback_query 
+    await query.answer()
+    callback_data = query.data
+    wallet_nonce = callback_data.split("_")[-1]
+    user_id = context.user_data["user_id"]
+    public_key = server.firebase_utils.get_user_address(user_id, wallet_nonce)
+    context.user_data['public_key'] = public_key
+
     tokens = server.firebase_utils.get_tokens()
     text = "These are your balances:\n"
-    public_key = context.user_data['public_key']
     for token in tokens:
         symbol = token["symbol"]
         balance = blockchain.web3_utils.get_balanceOf(token["address"], public_key)
@@ -128,6 +135,29 @@ async def view_token_balances(update: Update, context: CallbackContext):
         text=text,
         reply_markup= reply_markup
     )
+    return ROUTE
+
+async def view_token_options(update: Update, context: CallbackContext):
+    user_id = context.user_data["user_id"]
+    message = "Please Select Wallet"
+    wallet_buttons = []
+    wallet_count = server.firebase_utils.get_user(user_id)['walletCount']
+
+    for wallet in range(1, wallet_count + 1):
+        wallet_buttons.append(InlineKeyboardButton(f'w{wallet}', callback_data=f'wallet_view_{wallet}'))
+    
+    keyboard = [
+        []+wallet_buttons,
+        [InlineKeyboardButton("< Back", callback_data="start")],
+    ]
+        
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = message,
+        reply_markup= reply_markup
+    )
+
     return ROUTE
 
 async def list_popular_tokens(update: Update, context: CallbackContext):
@@ -175,14 +205,15 @@ def main():
             ROUTE: {
                 CommandHandler('start', start),
                 CallbackQueryHandler(start, pattern = "^start$"),
-                CallbackQueryHandler(view_token_balances, pattern = "^view_token_balances$"),
+                CallbackQueryHandler(view_token_balances, pattern="^wallet_view.*"),
+                CallbackQueryHandler(view_token_options, pattern = "^view_token_balances$"),
                 CallbackQueryHandler(list_popular_tokens, pattern = "^list_popular_tokens$"),
                 CallbackQueryHandler(buy_tokens_options, pattern="^buy_tokens_options$"),
                 CallbackQueryHandler(sell_tokens_options, pattern="^sell_tokens_options$"),
                 CallbackQueryHandler(sell_tokens, pattern="^sell_tokens$"),
                 CallbackQueryHandler(buy_tokens, pattern="^buy_tokens$"),
                 CallbackQueryHandler(transfer_tokens_options, pattern = "^transfer_tokens_options$"),
-                CallbackQueryHandler(select_token, pattern="^wallet_.*"),
+                CallbackQueryHandler(select_token, pattern="^wallet_transfer.*"),
                 CallbackQueryHandler(select_transfer_amount, pattern="^select_transfer_amount.*"),
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_25%$"),
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_50%$"),
