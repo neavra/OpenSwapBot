@@ -7,7 +7,7 @@ from telegram import (
 from telegram.ext import (
     CallbackContext
 )
-from validate import (validate_wallets_input)
+from validate import (validate_wallets_input, check_number_of_wallets)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -27,6 +27,21 @@ FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
 async def import_wallet_options(update: Update, context: CallbackContext):
+    user_id = context.user_data['user_id']
+    e = await check_number_of_wallets(user_id)
+    if e != '':
+        keyboard = [
+            [InlineKeyboardButton("< Back", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=(f"Sorry! Each user can only have a max of 5 wallets"
+            ),
+            reply_markup=reply_markup
+        )
+        return IMPORT_WALLET
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"Please enter the private key of the wallet you want to import"

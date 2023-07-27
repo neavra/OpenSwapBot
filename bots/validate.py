@@ -70,6 +70,16 @@ async def validate_token_input(token_input):
     except Exception as e:
         logger.info(f"Error when validating token_input: {e}")
         return ["","",e]
+    
+async def check_number_of_wallets(user_id):
+    walletCount = server.firebase_utils.get_user(user_id)['walletCount']
+    try:
+        if walletCount >= 5:
+            raise ValueError("Hit max wallets")
+        return ''
+    except Exception as e:
+        logger.info(f"User has hit the max limit of wallets: {walletCount}")
+        return e
 
 async def validate_wallets_input(user_id ,private_key):
     if private_key[:2] != '0x':
