@@ -88,7 +88,8 @@ async def start(update: Update, context: CallbackContext):
             InlineKeyboardButton("Transfer Tokens", callback_data="transfer_tokens_options")
         ],
         [
-            InlineKeyboardButton("Import Wallet", callback_data="import_wallet_options")
+            InlineKeyboardButton("Import Wallet", callback_data="import_wallet_options"),
+            InlineKeyboardButton("Export Wallet", callback_data="export_wallet_options"),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
