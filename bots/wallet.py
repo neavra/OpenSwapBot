@@ -142,16 +142,10 @@ async def export_wallet(update: Update, context: CallbackContext):
     f"Private Key: {private_key}\n"
     )
 
-    sent_message = await context.bot.send_message(
+    await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=message,
         parse_mode="markdown",
     )
-
-    # Wait for 10 seconds
-    await asyncio.sleep(10)
-
-    # Delete the sent message
-    await sent_message.delete()
     return ROUTE
 
