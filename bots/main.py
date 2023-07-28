@@ -13,7 +13,7 @@ from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
 from transfer import (transfer_tokens_options, select_token, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
 from view_balance import (view_token_options, view_token_balances)
-from wallet import (import_wallet_options, import_wallet, export_wallet_options)
+from wallet import (import_wallet_options, import_wallet, export_wallet_options, export_wallet_confirmation, export_wallet)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -215,6 +215,12 @@ def main():
                 CommandHandler('start', start),
                 CallbackQueryHandler(start, pattern = "^start$"),
                 MessageHandler(filters.TEXT, import_wallet),
+            },
+            EXPORT_WALLET: {
+                CommandHandler('start', start),
+                CallbackQueryHandler(start, pattern = "^start$"),
+                CallbackQueryHandler(export_wallet_confirmation, pattern="^export_wallet_.*"),
+                CallbackQueryHandler(export_wallet, pattern="^export_wallet$"),
             }
         },
         fallbacks= [MessageHandler(filters.TEXT, unknown)]

@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import sys
 from dotenv import load_dotenv
 from telegram import (
@@ -105,3 +106,52 @@ async def export_wallet_options(update: Update, context: CallbackContext):
     )
 
     return EXPORT_WALLET
+
+async def export_wallet_confirmation(update: Update, context: CallbackContext):
+    query= update.callback_query 
+    await query.answer()
+    callback_data = query.data
+    wallet_nonce = callback_data.split("_")[-1]
+    user_id = context.user_data["user_id"]
+    public_key = server.firebase_utils.get_user_address(user_id, wallet_nonce)
+    context.user_data['public_key'] = public_key
+
+    keyboard = [
+            [InlineKeyboardButton("Confirm", callback_data="export_wallet"),InlineKeyboardButton("< Back", callback_data="start")]
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    message = (
+    f"Wallet selected: {public_key}\n"
+    f"By clicking continue, your private key will be sent to you.\n"
+    f"NEVER REVEAL UR PRIVATE KEY TO ANYONE. YOU WILL LOSE ALL YOUR FUNDS\n"
+    )
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, 
+        text=message, 
+        parse_mode="markdown", 
+        reply_markup=reply_markup
+    )
+    return EXPORT_WALLET
+
+async def export_wallet(update: Update, context: CallbackContext):
+    public_key = context.user_data['public_key']
+    private_key = server.firebase_utils.get_private_key(public_key)
+    message = (
+    f"Private Key: {private_key}\n"
+    )
+
+    sent_message = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=message,
+        parse_mode="markdown",
+    )
+
+    # Wait for 10 seconds
+    await asyncio.sleep(10)
+
+    # Delete the sent message
+    await sent_message.delete()
+    return ROUTE
+
