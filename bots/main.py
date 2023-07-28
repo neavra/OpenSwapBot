@@ -13,7 +13,7 @@ from buy import (buy_tokens_options, buy_tokens_confirmation, buy_tokens)
 from sell import (sell_tokens_options, sell_tokens_confirmation, sell_tokens)
 from transfer import (transfer_tokens_options, select_token, select_transfer_amount, select_transfer_address, transfer_tokens_confirmation, transfer_tokens)
 from view_balance import (view_token_options, view_token_balances)
-from wallet import (import_wallet_options, import_wallet)
+from wallet import (import_wallet_options, import_wallet, export_wallet_options)
 sys.path.append("../")
 
 import blockchain.web3_utils
@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET = range(6)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET, EXPORT_WALLET = range(7)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -168,7 +168,7 @@ def main():
                 CallbackQueryHandler(select_transfer_address, pattern = "^transfer_100%$"),
                 CallbackQueryHandler(transfer_tokens, pattern = "^transfer_tokens$"),
                 CallbackQueryHandler(import_wallet_options, pattern = "^import_wallet_options$"),
-
+                CallbackQueryHandler(export_wallet_options, pattern = "^export_wallet_options$"),
             },
             BUY_TOKENS_CONFIRMATION: {
                 CommandHandler('start', start),

@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET = range(6)
+ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET, EXPORT_WALLET = range(7)
 FEES = [3000]
 WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
 
@@ -82,3 +82,26 @@ async def import_wallet(update: Update, context: CallbackContext):
         reply_markup= reply_markup
     )
     return ROUTE
+
+async def export_wallet_options(update: Update, context: CallbackContext):
+    user_id = context.user_data["user_id"]
+    message = "Please Select Wallet"
+    wallet_buttons = []
+    wallet_count = server.firebase_utils.get_user(user_id)['walletCount']
+
+    for wallet in range(1, wallet_count + 1):
+        wallet_buttons.append(InlineKeyboardButton(f'w{wallet}', callback_data=f'export_wallet_{wallet}'))
+    
+    keyboard = [
+        []+wallet_buttons,
+        [InlineKeyboardButton("< Back", callback_data="start")],
+    ]
+        
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text = message,
+        reply_markup= reply_markup
+    )
+
+    return EXPORT_WALLET
