@@ -139,13 +139,23 @@ async def export_wallet(update: Update, context: CallbackContext):
     public_key = context.user_data['public_key']
     private_key = server.firebase_utils.get_private_key(public_key)
     message = (
+    f"Disclaimer: You are responsible for your funds once private keys are revealed.\n"
+    f"Please exercise extreme caution with these private keys." 
     f"Private Key: {private_key}\n"
+    f"For your security, this message will be deleted after 15 seconds"
     )
 
-    await context.bot.send_message(
+    key_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=message,
         parse_mode="markdown",
     )
+
+    # Use asyncio.sleep to create a delay of 5 seconds
+    async def delayed_delete():
+        await asyncio.sleep(15)
+        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=key_message.message_id)
+
+    await delayed_delete()
     return ROUTE
 
