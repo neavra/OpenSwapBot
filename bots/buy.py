@@ -44,7 +44,7 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     return BUY_TOKENS_CONFIRMATION
 
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
-    await context.bot_data['keyboard_message']
+    await context.bot_data['keyboard_message'].delete()
 
     user_id = context.user_data.get('user_id')
     token_out = update.message.text

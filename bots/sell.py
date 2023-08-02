@@ -46,6 +46,8 @@ async def sell_tokens_options(update: Update, context: CallbackContext):
     return SELL_TOKENS_CONFIRMATION
 
 async def sell_tokens_confirmation(update: Update, context: CallbackContext):
+    await context.bot_data['keyboard_message'].delete()
+
     user_id = context.user_data.get('user_id')
     token_in = update.message.text
     amount_states = context.user_data["amount_states"]
@@ -114,12 +116,13 @@ async def sell_tokens_confirmation(update: Update, context: CallbackContext):
         f"Swap {round(amount_in,5)} of {token_in_symbol} for (estimated) {round(amount_out_quote,5)} of {token_out_symbol}\n"
         )
 
-        await context.bot.send_message(
+        sell_tokens_confirmation_message = await context.bot.send_message(
                     chat_id=update.effective_chat.id, 
                     text=message, 
                     parse_mode="markdown", 
                     reply_markup=reply_markup
                 )
+        context.bot_data["sell_tokens_confirmation_message"] = sell_tokens_confirmation_message
         return ROUTE
 
     except Exception as e:
@@ -146,7 +149,7 @@ async def sell_tokens(update: Update, context: CallbackContext):
         # Handling CallbackQueryHandler case
         query = update.callback_query
         await query.answer()
-
+    await context.bot_data["sell_tokens_confirmation_message"].delete()
     # Send loading message to user
     loading_message = "Executing Swap, this might take a while..."
     message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)
