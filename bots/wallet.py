@@ -99,17 +99,19 @@ async def export_wallet_options(update: Update, context: CallbackContext):
     ]
         
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    export_wallet_options_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = message,
         reply_markup= reply_markup
     )
-
+    context.bot_data['export_wallet_options_message'] = export_wallet_options_message
     return EXPORT_WALLET
 
 async def export_wallet_confirmation(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
+    await context.bot_data['export_wallet_options_message'].delete()
+
     callback_data = query.data
     wallet_nonce = callback_data.split("_")[-1]
     user_id = context.user_data["user_id"]
@@ -127,15 +129,18 @@ async def export_wallet_confirmation(update: Update, context: CallbackContext):
     f"NEVER REVEAL UR PRIVATE KEY TO ANYONE. YOU WILL LOSE ALL YOUR FUNDS\n"
     )
 
-    await context.bot.send_message(
+    export_wallet_confirmation_message = await context.bot.send_message(
         chat_id=update.effective_chat.id, 
         text=message, 
         parse_mode="markdown", 
         reply_markup=reply_markup
     )
+
+    context.bot_data['export_wallet_confirmation_message'] = export_wallet_confirmation_message
     return EXPORT_WALLET
 
 async def export_wallet(update: Update, context: CallbackContext):
+    await context.bot_data['export_wallet_confirmation_message'].delete()
     public_key = context.user_data['public_key']
     private_key = server.firebase_utils.get_private_key(public_key)
     message = (
@@ -145,7 +150,7 @@ async def export_wallet(update: Update, context: CallbackContext):
     f"For your security, this message will be deleted after 15 seconds"
     )
 
-    key_message = await context.bot.send_message(
+    export_wallet_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=message,
         parse_mode="markdown",
@@ -154,7 +159,7 @@ async def export_wallet(update: Update, context: CallbackContext):
     # Use asyncio.sleep to create a delay of 5 seconds
     async def delayed_delete():
         await asyncio.sleep(15)
-        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=key_message.message_id)
+        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=export_wallet_message.message_id)
 
     await delayed_delete()
     return ROUTE

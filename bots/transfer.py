@@ -40,17 +40,19 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
     ]
         
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    transfer_tokens_options_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = message,
         reply_markup= reply_markup
     )
-
+    context.bot_data["transfer_tokens_options_message"] = transfer_tokens_options_message
     return ROUTE   
  
 async def select_token(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
+    await context.bot_data["transfer_tokens_options_message"].delete()
+
     callback_data = query.data
     wallet_nonce = callback_data.split("_")[-1]
     user_id = context.user_data["user_id"]
@@ -77,16 +79,19 @@ async def select_token(update: Update, context: CallbackContext):
     keyboard += [InlineKeyboardButton("< Back", callback_data="start")],
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    select_token_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = message,
         reply_markup= reply_markup
     )
+    context.bot_data["select_token_message"] = select_token_message
     return ROUTE
 
 async def select_transfer_amount(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
+    await context.bot_data["select_token_message"].delete()
+
     callback_data = query.data
     symbol = callback_data.split("_")[-1]
     context.user_data['symbol'] = symbol
@@ -101,16 +106,19 @@ async def select_transfer_amount(update: Update, context: CallbackContext):
         [InlineKeyboardButton('< Back', callback_data='start')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    select_transfer_amount_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = message,
-        reply_markup= reply_markup)
-
+        reply_markup= reply_markup
+    )
+    context.bot_data["select_transfer_amount_message"] = select_transfer_amount_message
     return ROUTE
 
 async def select_transfer_address(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
+    await context.bot_data["select_transfer_amount_message"].delete()
+
     callback_data = query.data
     amount_percentage = callback_data.split("_")[-1]
     symbol = context.user_data['symbol']
@@ -156,15 +164,17 @@ async def transfer_tokens_confirmation(update: Update, context: CallbackContext)
     }
     context.user_data['order'] = order
 
-    await context.bot.send_message(
+    transfer_tokens_confirmation_message = await context.bot.send_message(
                 chat_id=update.effective_chat.id, 
                 text=message, 
                 parse_mode="markdown", 
                 reply_markup=reply_markup
             )
+    context.bot_data["transfer_tokens_confirmation_message"] = transfer_tokens_confirmation_message
     return ROUTE
 
 async def transfer_tokens(update: Update, context: CallbackContext):
+    await context.bot_data["transfer_tokens_confirmation_message"].delete()
     order = context.user_data['order']
 
     loading_message = "Transferring Tokens, this might take a while..."

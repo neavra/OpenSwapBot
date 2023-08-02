@@ -40,17 +40,20 @@ async def view_token_options(update: Update, context: CallbackContext):
     ]
         
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_message(
+    view_token_options_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text = message,
         reply_markup= reply_markup
     )
+    context.bot_data['view_token_options_message'] = view_token_options_message
 
     return ROUTE
 
 async def view_token_balances(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
+    await context.bot_data['view_token_options_message'].delete()
+    
     callback_data = query.data
     wallet_nonce = callback_data.split("_")[-1]
     user_id = context.user_data["user_id"]
