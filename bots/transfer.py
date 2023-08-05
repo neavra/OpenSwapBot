@@ -228,8 +228,8 @@ async def transfer_tokens(update: Update, context: CallbackContext):
 async def calculate_amount(amount_percentage, symbol, public_key):
     amount_percentage = amount_percentage.strip('%')
     percentage = float(amount_percentage) / 100
-    if symbol == 'ETH':
-        balance = blockchain.web3_utils.get_eth_balance(public_key)
+    if symbol == 'ETH': # In the case of eth need to leave some eth for gas
+        balance = float(blockchain.web3_utils.get_eth_balance(public_key)) - 0.0001
     else:
         token = server.firebase_utils.get_token(symbol)
         address = token['address']
