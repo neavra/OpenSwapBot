@@ -71,9 +71,14 @@ async def buy_tokens_confirmation(update: Update, context: CallbackContext):
     
     [token_out, token_out_symbol, e] = await validate_token_input(token_out)
     if e != "":
+        keyboard = [
+            [InlineKeyboardButton("< Back", callback_data="buy_tokens_options")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text =f"Could not identify the token, please input the token contract",
+        text =str(e),
+        reply_markup= reply_markup
         )
         return BUY_TOKENS_CONFIRMATION
     

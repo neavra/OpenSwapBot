@@ -64,9 +64,11 @@ async def validate_token_input(token_input):
             return [token_input, symbol, ""]
         else:
             token_input = token_input.upper()
+            if token_input == "WETH":
+                raise ValueError('Wrap your ETH to get WETH instead of swapping')
             token = server.firebase_utils.get_token(token_input)
             if not token: # If token object is not found
-                raise ValueError('Token not recognised')
+                raise ValueError('Token not recognised, please input contract address')
             return [token["address"],token["symbol"], ""] # Return the contract address
     except Exception as e:
         logger.info(f"Error when validating token_input: {e}")
