@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 from dotenv import load_dotenv
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 ROUTE, BUY_TOKENS_CONFIRMATION, SELL_TOKENS_CONFIRMATION, CUSTOM_AMOUNT, TRANSFER_TOKENS_CONFIRMATION, IMPORT_WALLET, EXPORT_WALLET = range(7)
 FEES = [3000]
-WETH_ADDRESS = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6" # WETH GOERLI
+WETH_ADDRESS = os.getenv("WETH_ADDRESS_GOERLI") # WETH GOERLI
 
 async def view_token_options(update: Update, context: CallbackContext):
     user_id = context.user_data["user_id"]
