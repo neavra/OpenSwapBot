@@ -45,7 +45,10 @@ async def buy_tokens_options(update: Update, context: CallbackContext):
     return BUY_TOKENS_CONFIRMATION
 
 async def buy_tokens_confirmation(update: Update, context: CallbackContext):
-    await context.bot_data['keyboard_message'].delete()
+    try:
+        await context.bot_data['keyboard_message'].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
 
     user_id = context.user_data.get('user_id')
     token_out = update.message.text
@@ -151,7 +154,11 @@ async def buy_tokens(update: Update, context: CallbackContext):
         # Handling CallbackQueryHandler case
         query = update.callback_query
         await query.answer()
-    await context.bot_data["buy_tokens_confirmation_message"].delete()
+    try:
+        await context.bot_data["buy_tokens_confirmation_message"].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
+
     # Send loading message to user
     loading_message = "Executing Swap, this might take a while..."
     message = await context.bot.send_message(chat_id=update.effective_chat.id, text=loading_message)

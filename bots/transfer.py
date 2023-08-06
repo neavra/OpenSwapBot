@@ -52,7 +52,10 @@ async def transfer_tokens_options(update: Update, context: CallbackContext):
 async def select_token(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
-    await context.bot_data["transfer_tokens_options_message"].delete()
+    try:
+        await context.bot_data["transfer_tokens_options_message"].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
 
     callback_data = query.data
     wallet_nonce = callback_data.split("_")[-1]
@@ -91,7 +94,11 @@ async def select_token(update: Update, context: CallbackContext):
 async def select_transfer_amount(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
-    await context.bot_data["select_token_message"].delete()
+
+    try:
+        await context.bot_data["select_token_message"].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
 
     callback_data = query.data
     symbol = callback_data.split("_")[-1]
@@ -118,7 +125,11 @@ async def select_transfer_amount(update: Update, context: CallbackContext):
 async def select_transfer_address(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
-    await context.bot_data["select_transfer_amount_message"].delete()
+
+    try:
+        await context.bot_data["select_transfer_amount_message"].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
 
     callback_data = query.data
     amount_percentage = callback_data.split("_")[-1]
@@ -175,7 +186,11 @@ async def transfer_tokens_confirmation(update: Update, context: CallbackContext)
     return ROUTE
 
 async def transfer_tokens(update: Update, context: CallbackContext):
-    await context.bot_data["transfer_tokens_confirmation_message"].delete()
+    try:
+        await context.bot_data["transfer_tokens_confirmation_message"].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
+
     order = context.user_data['order']
 
     loading_message = "Transferring Tokens, this might take a while..."

@@ -111,7 +111,11 @@ async def export_wallet_options(update: Update, context: CallbackContext):
 async def export_wallet_confirmation(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
-    await context.bot_data['export_wallet_options_message'].delete()
+    
+    try:
+        await context.bot_data['export_wallet_options_message'].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
 
     callback_data = query.data
     wallet_nonce = callback_data.split("_")[-1]
@@ -141,7 +145,11 @@ async def export_wallet_confirmation(update: Update, context: CallbackContext):
     return EXPORT_WALLET
 
 async def export_wallet(update: Update, context: CallbackContext):
-    await context.bot_data['export_wallet_confirmation_message'].delete()
+    try:
+        await context.bot_data['export_wallet_confirmation_message'].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
+
     public_key = context.user_data['public_key']
     private_key = server.firebase_utils.get_private_key(public_key)
     message = (

@@ -53,7 +53,11 @@ async def view_token_options(update: Update, context: CallbackContext):
 async def view_token_balances(update: Update, context: CallbackContext):
     query= update.callback_query 
     await query.answer()
-    await context.bot_data['view_token_options_message'].delete()
+    
+    try:
+        await context.bot_data['view_token_options_message'].delete()
+    except Exception as e:
+        logger.info("Message already deleted")
     
     callback_data = query.data
     wallet_nonce = callback_data.split("_")[-1]
